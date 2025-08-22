@@ -23,3 +23,10 @@ body {
       rgb(var(--background-end-rgb))
     rgb(var(--background-start-rgb)));
 }
+/* .main-content {
+  @apply md:ml-64;
+} */
+
+html {
+  font-size: 16px; /* par défaut c'est 16px */
+}
