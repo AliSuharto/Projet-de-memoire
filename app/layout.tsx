@@ -1,15 +1,14 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-
-import SideNav from '@/components/SideNav'
-import Topnav from '@/components/TopNav'
+import { AuthProvider } from '@/components/auth/AuthProvider'
+import { ToastProvider } from '@/components/ui/ToastContainer'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'GMC Application',
-  description: 'Gestion de votre contenu',
+  title: 'e-GMC - Gestion de Marchés Communaux',
+  description: 'Plateforme de gestion des marchés communaux',
 }
 
 export default function RootLayout({
@@ -20,13 +19,11 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className={`${inter.className} antialiased`}>
-
-        {/* Contenu principal avec marges responsives */}
-        
-          <div className="">
+        <ToastProvider>
+          <AuthProvider>
             {children}
-          </div>
-        
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   )

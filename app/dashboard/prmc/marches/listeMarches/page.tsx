@@ -1,220 +1,285 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { Plus, ChevronRight, X } from "lucide-react";
-import { useRouter } from "next/navigation"; // ✅ Import correct
-import Pagination from "@/components/Pagination";
-import SearchBar from "@/components/SearchBar";
+import React, { useState } from "react";
+import { Plus, Eye, Edit, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import DataTable from "@/components/ui/DataTable";
+import Modal, { ModalContent, ModalFooter } from "@/components/ui/Modal";
+import Button from "@/components/ui/Button";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { Market, TableColumn, TableAction } from "@/app/types/common";
 
 // =======================
-// Types
+// Types locaux
 // =======================
-type Market = {
-  id: number;
+interface CreateMarketForm {
   nom: string;
-  nombreDePlace: number;
-  tauxOccupation: number;
-};
-
-type CreateMarketModalProps = {
-  isOpen: boolean;
-  onClose: () => void;
-};
-
-type HeaderProps = {
-  onCreateMarket: () => void;
-};
-
-type TableRowProps = {
-  market: Market;
-  index: number;
-  onViewDetails: (market: Market) => void;
-};
-
-type MarketsTableProps = {
-  markets: Market[];
-  onViewDetails: (market: Market) => void;
-};
+  adresse: string;
+  nombreDePlace: string;
+  description: string;
+}
 
 // =======================
 // Données simulées
 // =======================
 const SAMPLE_MARKETS: Market[] = [
-  { id: 1, nom: "Marché Central", nombreDePlace: 150, tauxOccupation: 85 },
-  { id: 2, nom: "Marché de Fruits", nombreDePlace: 80, tauxOccupation: 92 },
-  { id: 3, nom: "Marché aux Poissons", nombreDePlace: 45, tauxOccupation: 78 },
-  { id: 4, nom: "Marché des Légumes", nombreDePlace: 120, tauxOccupation: 95 },
-  { id: 5, nom: "Marché Artisanal", nombreDePlace: 60, tauxOccupation: 67 },
-  { id: 6, nom: "Marché Nocturne", nombreDePlace: 90, tauxOccupation: 88 },
-  { id: 7, nom: "Marché Bio", nombreDePlace: 35, tauxOccupation: 100 },
-  { id: 8, nom: "Marché de Viande", nombreDePlace: 25, tauxOccupation: 84 },
-  { id: 9, nom: "Marché aux Fleurs", nombreDePlace: 40, tauxOccupation: 72 },
-  { id: 10, nom: "Marché Traditionnel", nombreDePlace: 200, tauxOccupation: 89 },
+  { 
+    id: 1, 
+    nom: "Marché Central", 
+    adresse: "Place de la République", 
+    nombreDePlace: 150, 
+    tauxOccupation: 85,
+    statut: "Actif",
+    dateCreation: "2024-01-15"
+  },
+  { 
+    id: 2, 
+    nom: "Marché de Fruits", 
+    adresse: "Avenue des Palmiers", 
+    nombreDePlace: 80, 
+    tauxOccupation: 92,
+    statut: "Actif",
+    dateCreation: "2024-02-20"
+  },
+  { 
+    id: 3, 
+    nom: "Marché aux Poissons", 
+    adresse: "Port de pêche", 
+    nombreDePlace: 45, 
+    tauxOccupation: 78,
+    statut: "Maintenance",
+    dateCreation: "2024-03-10"
+  },
+  { 
+    id: 4, 
+    nom: "Marché des Légumes", 
+    adresse: "Zone agricole", 
+    nombreDePlace: 120, 
+    tauxOccupation: 95,
+    statut: "Actif",
+    dateCreation: "2024-04-05"
+  },
+  { 
+    id: 5, 
+    nom: "Marché Artisanal", 
+    adresse: "Centre-ville", 
+    nombreDePlace: 60, 
+    tauxOccupation: 67,
+    statut: "Inactif",
+    dateCreation: "2024-05-12"
+  },
 ];
 
 // =======================
-// Composants
+// Configuration du tableau
 // =======================
 
-// Header
-const Header: React.FC<HeaderProps> = ({ onCreateMarket }) => (
-  <div className="flex justify-between items-center mb-6">
-    <h1 className="text-2xl font-bold text-gray-800">Gestion des Marchés</h1>
-    <button
-      onClick={onCreateMarket}
-      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-    >
-      <Plus size={20} />
-      Créer un marché
-    </button>
-  </div>
-);
+// Fonction pour obtenir le badge de taux d'occupation
+const getOccupationBadge = (tauxOccupation: number) => {
+  let variant: 'success' | 'warning' | 'danger' = 'danger';
+  
+  if (tauxOccupation >= 90) variant = 'success';
+  else if (tauxOccupation >= 70) variant = 'warning';
+  
+  return (
+    <StatusBadge 
+      status={`${tauxOccupation}%`} 
+      variant={variant}
+      size="sm"
+    />
+  );
+};
 
-// Ligne de tableau
-const TableRow: React.FC<TableRowProps> = ({ market, index, onViewDetails }) => (
-  <tr className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-    <td className="px-6 py-4 text-sm font-medium text-gray-900">{market.nom}</td>
-    <td className="px-6 py-4 text-sm text-gray-700">{market.nombreDePlace}</td>
-    <td className="px-6 py-4 text-sm text-gray-700">
-      <div className="flex items-center">
-        <span
-          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-            market.tauxOccupation >= 90
-              ? "bg-green-100 text-green-800"
-              : market.tauxOccupation >= 70
-              ? "bg-yellow-100 text-yellow-800"
-              : "bg-red-100 text-red-800"
-          }`}
-        >
-          {market.tauxOccupation}%
-        </span>
+// Configuration des colonnes du tableau
+const getTableColumns = (): TableColumn<Market>[] => [
+  {
+    key: 'nom',
+    header: 'Nom du marché',
+    sortable: true,
+    render: (market) => (
+      <div>
+        <div className="font-medium text-gray-900">{market.nom}</div>
+        {market.adresse && (
+          <div className="text-sm text-gray-500">{market.adresse}</div>
+        )}
       </div>
-    </td>
-    <td className="px-6 py-4 text-sm text-gray-500">
-      <button
-        onClick={() => onViewDetails(market)}
-        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2 rounded-full transition-colors"
-        title="Voir les détails"
-      >
-        <ChevronRight size={18} />
-      </button>
-    </td>
-  </tr>
-);
+    ),
+  },
+  {
+    key: 'nombreDePlace',
+    header: 'Places',
+    sortable: true,
+    className: 'text-center',
+    render: (market) => (
+      <span className="font-medium">{market.nombreDePlace}</span>
+    ),
+  },
+  {
+    key: 'tauxOccupation',
+    header: 'Taux d\'occupation',
+    sortable: true,
+    className: 'text-center',
+    render: (market) => getOccupationBadge(market.tauxOccupation),
+  },
+  {
+    key: 'statut',
+    header: 'Statut',
+    sortable: true,
+    className: 'text-center',
+    render: (market) => (
+      <StatusBadge status={market.statut || 'Actif'} />
+    ),
+  },
+];
 
-// Tableau des marchés
-const MarketsTable: React.FC<MarketsTableProps> = ({ markets, onViewDetails }) => (
-  <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-gray-800">
-        <tr>
-          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-            Nom
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-            Nombre de places
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-            Taux occupation
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-            Actions
-          </th>
-        </tr>
-      </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
-        {markets.map((market, index) => (
-          <TableRow
-            key={market.id}
-            market={market}
-            index={index}
-            onViewDetails={onViewDetails}
-          />
-        ))}
-      </tbody>
-    </table>
-    {markets.length === 0 && (
-      <div className="text-center py-8 text-gray-500">Aucun marché trouvé</div>
-    )}
-  </div>
-);
+// Configuration des actions du tableau
+const getTableActions = (
+  onViewDetails: (market: Market) => void,
+  onEdit: (market: Market) => void,
+  onDelete: (market: Market) => void
+): TableAction<Market>[] => [
+  {
+    label: 'Voir détails',
+    icon: Eye,
+    onClick: onViewDetails,
+    variant: 'primary',
+  },
+  {
+    label: 'Modifier',
+    icon: Edit,
+    onClick: onEdit,
+    variant: 'secondary',
+  },
+  {
+    label: 'Supprimer',
+    icon: Trash2,
+    onClick: onDelete,
+    variant: 'danger',
+  },
+];
 
 // Modal création marché
-const CreateMarketModal: React.FC<CreateMarketModalProps> = ({ isOpen, onClose }) => {
-  const [formData, setFormData] = useState({
+const CreateMarketModal: React.FC<{ isOpen: boolean; onClose: () => void; onSubmit: (data: CreateMarketForm) => void }> = ({ 
+  isOpen, 
+  onClose, 
+  onSubmit 
+}) => {
+  const [formData, setFormData] = useState<CreateMarketForm>({
     nom: "",
     adresse: "",
     nombreDePlace: "",
     description: "",
   });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!formData.nom.trim() || !formData.adresse.trim()) {
       alert("Veuillez remplir le nom et l'adresse du marché");
       return;
     }
 
-    console.log("Création du marché:", formData);
-    alert(`Marché "${formData.nom}" créé avec succès !`);
-    onClose();
-    setFormData({ nom: "", adresse: "", nombreDePlace: "", description: "" });
+    setLoading(true);
+    try {
+      await onSubmit(formData);
+      setFormData({ nom: "", adresse: "", nombreDePlace: "", description: "" });
+      onClose();
+    } catch (error) {
+      console.error("Erreur lors de la création:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-gray-900 bg-opacity-70 backdrop-blur-sm"
-        onClick={onClose}
-      ></div>
-      <div className="relative z-50 w-full max-w-md bg-white shadow-xl rounded-2xl p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900">
-            Créer un nouveau marché
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div className="relative z-50 w-full max-w-md bg-white shadow-xl rounded-2xl p-6"> 
-            {/* Header */}
-             
-                      {/* Form */} 
-                     <div className="space-y-4"> {/* Nom */} 
-                        
-                        <div> <label className="block text-sm font-medium text-gray-700 mb-1"> Nom du marché <span className="text-red-500">*</span> 
-                        </label> <input type="text" value={formData.nom} onChange={(e) => setFormData({ ...formData, nom: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Entrez le nom du marché" /> 
-                        </div> {/* Adresse */}
-                        
-                         <div> 
-                            
-                            <label className="block text-sm font-medium text-gray-700 mb-1"> Adresse <span className="text-red-500">*</span> </label>
-                            
-                             <input type="text" value={formData.adresse} onChange={(e) => setFormData({ ...formData, adresse: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Entrez l'adresse du marché" /> 
-                             
-                             </div> {/* Nombre de places (optionnel) */} <div> <label className="block text-sm font-medium text-gray-700 mb-1"> Nombre de places (optionnel) </label> <input type="number" min="1" value={formData.nombreDePlace} onChange={(e) => setFormData({ ...formData, nombreDePlace: e.target.value }) } className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Entrez le nombre de places" /> </div> {/* Description */} <div> <label className="block text-sm font-medium text-gray-700 mb-1"> Description (optionnel) </label> <textarea rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="Description du marché" /> </div> </div>
-        {/* <div className="flex space-x-3 pt-6"> */}
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
-          >
-            Annuler
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Créer
-          </button>
-        </div>
-      </div>
-    </div>
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose}
+      title="Créer un nouveau marché"
+      size="md"
+    >
+      <form onSubmit={handleSubmit}>
+        <ModalContent>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nom du marché <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.nom}
+                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Entrez le nom du marché"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Adresse <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.adresse}
+                onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Entrez l'adresse du marché"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre de places (optionnel)
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={formData.nombreDePlace}
+                onChange={(e) => setFormData({ ...formData, nombreDePlace: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Entrez le nombre de places"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description (optionnel)
+              </label>
+              <textarea
+                rows={3}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                placeholder="Description du marché"
+              />
+            </div>
+          </div>
+        </ModalContent>
+        
+        <ModalFooter>
+          <div className="flex space-x-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              className="flex-1"
+            >
+              Annuler
+            </Button>
+            <Button
+              type="submit"
+              loading={loading}
+              className="flex-1"
+            >
+              Créer le marché
+            </Button>
+          </div>
+        </ModalFooter>
+      </form>
+    </Modal>
   );
 };
 
@@ -222,63 +287,99 @@ const CreateMarketModal: React.FC<CreateMarketModalProps> = ({ isOpen, onClose }
 // Composant principal
 // =======================
 const MarketsManagement: React.FC = () => {
-  const router = useRouter(); // ✅ ici on initialise bien le router
-  const [markets] = useState<Market[]>(SAMPLE_MARKETS);
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const itemsPerPage = 5;
-
-  // Filtrage
-  const filteredMarkets = useMemo(
-    () =>
-      markets.filter((market) =>
-        market.nom.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-    [markets, searchTerm]
-  );
-
-  // Pagination
-  const totalPages = Math.ceil(filteredMarkets.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedMarkets = filteredMarkets.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const router = useRouter();
+  const [markets, setMarkets] = useState<Market[]>(SAMPLE_MARKETS);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [loading] = useState(false);
 
   // Handlers
-  const handlePageChange = (page: number) => setCurrentPage(page);
-
-  const handleSearchChange = (term: string) => {
-    setSearchTerm(term);
-    setCurrentPage(1);
-  };
-
   const handleViewDetails = (market: Market) => {
     console.log("Voir les détails du marché:", market);
-    router.push(`/dashboard/prmc/marches/${market.id}`); 
+    router.push(`/dashboard/prmc/marches/${market.id}`);
   };
+
+  const handleEdit = (market: Market) => {
+    console.log("Modifier le marché:", market);
+    // TODO: Implémenter la modification
+  };
+
+  const handleDelete = (market: Market) => {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer le marché "${market.nom}" ?`)) {
+      setMarkets(prev => prev.filter(m => m.id !== market.id));
+    }
+  };
+
+  const handleCreateMarket = async (formData: CreateMarketForm) => {
+    // Simulation d'un appel API
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const newMarket: Market = {
+      id: Math.max(...markets.map(m => m.id)) + 1,
+      nom: formData.nom,
+      adresse: formData.adresse,
+      nombreDePlace: parseInt(formData.nombreDePlace) || 0,
+      tauxOccupation: 0,
+      statut: "Actif",
+      dateCreation: new Date().toISOString().split('T')[0],
+      description: formData.description,
+    };
+    
+    setMarkets(prev => [...prev, newMarket]);
+    console.log("Marché créé:", newMarket);
+  };
+
+  // Configuration du tableau
+  const tableColumns = getTableColumns();
+  const tableActions = getTableActions(handleViewDetails, handleEdit, handleDelete);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        <Header onCreateMarket={() => setIsModalOpen(true)} />
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <SearchBar searchTerm={searchTerm} onSearchChange={handleSearchChange} />
-
-          <MarketsTable markets={paginatedMarkets} onViewDetails={handleViewDetails} />
-
-          {totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          )}
+      <div className="max-w-7xl mx-auto">
+        {/* En-tête */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Gestion des Marchés</h1>
+            <p className="text-gray-600 mt-1">
+              Gérez les marchés communaux et leurs informations
+            </p>
+          </div>
+          <Button
+            onClick={() => setIsCreateModalOpen(true)}
+            icon={Plus}
+            className="shadow-sm"
+          >
+            Créer un marché
+          </Button>
         </div>
 
-        <CreateMarketModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+        {/* Tableau des marchés */}
+        <DataTable
+          data={markets}
+          columns={tableColumns}
+          actions={tableActions}
+          loading={loading}
+          title="Liste des marchés"
+          searchOptions={{
+            placeholder: "Rechercher un marché...",
+            searchableFields: ['nom', 'adresse', 'statut'],
+          }}
+          paginationOptions={{
+            itemsPerPage: 10,
+            showItemsPerPageSelector: true,
+            itemsPerPageOptions: [5, 10, 20, 50],
+            showInfo: true,
+          }}
+          onRowClick={handleViewDetails}
+          emptyMessage="Aucun marché trouvé"
+          emptyDescription="Commencez par créer votre premier marché"
+        />
+
+        {/* Modal de création */}
+        <CreateMarketModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSubmit={handleCreateMarket}
+        />
       </div>
     </div>
   );

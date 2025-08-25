@@ -1,7 +1,55 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/auth/AuthProvider';
+import CommuneCheck from '@/components/setup/CommuneCheck';
+import SetupWizard from '@/components/setup/SetupWizard';
 import Image from 'next/image';
 import Link from 'next/link';
 
 export default function CustomLandingPage() {
+  const { user, loading } = useAuth();
+  const [showSetup, setShowSetup] = useState(false);
+  const [checkingCommune, setCheckingCommune] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+
+    if (user) {
+      // Utilisateur connecté, rediriger vers son dashboard
+      router.push('/dashboard');
+    } else {
+      // Utilisateur non connecté, commencer la vérification de commune
+      setCheckingCommune(true);
+    }
+  }, [user, loading, router]);
+
+  const handleCommuneExists = () => {
+    // Commune trouvée, rediriger vers login
+    router.push('/login');
+  };
+
+  const handleNoCommuneFound = () => {
+    // Aucune commune, afficher le wizard de configuration
+    setShowSetup(true);
+  };
+
+  // Afficher le wizard de configuration
+  if (showSetup) {
+    return <SetupWizard />;
+  }
+
+  // Afficher la vérification de commune
+  if (checkingCommune && !user) {
+    return (
+      <CommuneCheck
+        onCommuneExists={handleCommuneExists}
+        onNoCommuneFound={handleNoCommuneFound}
+      />
+    );
+  }
   // Configuration personnalisable
   const config = {
     // Header
@@ -113,14 +161,14 @@ export default function CustomLandingPage() {
           
           {/* CTA Button with modern design */}
           <div className="flex flex-col items-center space-y-10">
-            <Link href={config.ctaLink}>
-              <button className="group relative px-8 py-4 bg-gray-200 text-white font-semibold rounded-full shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 overflow-hidden">
+            <Link href="/login">
+              <button className="group relative px-8 py-4 bg-blue-600 text-white font-semibold rounded-full shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 overflow-hidden">
                 {/* Button background animation */}
                 <div className="absolute inset-0 bg-white-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 
                 {/* Button content */}
                 <span className="relative z-10 flex items-center space-x-2">
-                  <span>{config.ctaText}</span>
+                  <span>Se connecter</span>
                   <svg 
                     className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300 cursor-pointer" 
                     fill="none" 

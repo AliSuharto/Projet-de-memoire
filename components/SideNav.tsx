@@ -1,24 +1,12 @@
 // components/SideNav.tsx
 "use client";
 import Link from "next/link";
-import { LucideIcon, ChevronRight } from "lucide-react";
-import { useState, useEffect } from "react";
-
-type SubNavItem = {
-  href: string;
-  label: string;
-  subItems?: SubNavItem[];
-};
-
-type NavItem = {
-  href?: string;
-  icon: LucideIcon;
-  label: string;
-  subItems?: SubNavItem[];
-};
+import { ChevronRight } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { SideNavItem, SideNavSubItem } from "@/types/navigation";
 
 interface SideNavProps {
-  items: NavItem[];
+  items: SideNavItem[];
   currentPath?: string; // Passé depuis le parent
   className?: string;
 }
@@ -46,31 +34,21 @@ export default function SideNav({ items, currentPath = "/", className = "" }: Si
     }
   }, [openItems, mounted]);
 
-  // Auto-ouvrir les menus qui contiennent la page active
-  useEffect(() => {
-    if (mounted && currentPath) {
-      const newOpenItems = new Set(openItems);
-      
-      const findParentOfActivePage = (items: NavItem[], path: string) => {
-        for (const item of items) {
-          if (item.subItems) {
-            for (const subItem of item.subItems) {
-              if (isActive(subItem.href, path) || 
-                  (subItem.subItems && hasActiveChild(subItem.subItems, path))) {
-                newOpenItems.add(item.label);
-                if (subItem.subItems && hasActiveChild(subItem.subItems, path)) {
-                  newOpenItems.add(`${item.label}-${subItem.label}`);
-                }
-              }
-            }
-          }
-        }
-      };
+  const isActive = useCallback((href: string, pathToCheck: string = currentPath) => {
+    if (!pathToCheck || !href) return false;
+    return pathToCheck === href || pathToCheck.startsWith(href + '/');
+  }, [currentPath]);
 
-      findParentOfActivePage(items, currentPath);
-      setOpenItems(newOpenItems);
-    }
-  }, [currentPath, mounted, items]);
+  const hasActiveChild = useCallback((subItems: SideNavSubItem[], pathToCheck: string = currentPath): boolean => {
+    if (!pathToCheck) return false;
+    return subItems.some(subItem => 
+      isActive(subItem.href, pathToCheck) || 
+      (subItem.subItems && hasActiveChild(subItem.subItems, pathToCheck))
+    );
+  }, [currentPath, isActive]);
+
+  // Auto-ouvrir les menus qui contiennent la page active (désactivé pour éviter les boucles)
+  // Cette fonctionnalité sera réimplémentée plus tard si nécessaire
 
   const toggleItem = (key: string) => {
     const newOpenItems = new Set(openItems);
@@ -82,21 +60,8 @@ export default function SideNav({ items, currentPath = "/", className = "" }: Si
     setOpenItems(newOpenItems);
   };
 
-  const isActive = (href: string, pathToCheck: string = currentPath) => {
-    if (!pathToCheck || !href) return false;
-    return pathToCheck === href || pathToCheck.startsWith(href + '/');
-  };
-
-  const hasActiveChild = (subItems: SubNavItem[], pathToCheck: string = currentPath): boolean => {
-    if (!pathToCheck) return false;
-    return subItems.some(subItem => 
-      isActive(subItem.href, pathToCheck) || 
-      (subItem.subItems && hasActiveChild(subItem.subItems, pathToCheck))
-    );
-  };
-
   const renderSubMenu = (
-    subItems: SubNavItem[], 
+    subItems: SideNavSubItem[], 
     parentKey: string, 
     level: number = 1
   ) => {
