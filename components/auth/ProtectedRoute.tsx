@@ -1,67 +1,44 @@
 'use client';
-
-import React from 'react';
+import { useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from './AuthProvider';
-import { canAccessRoute, hasPermission } from '@/lib/auth';
+import { getRoleRedirectPath } from '@/app/Utils/roleRedirection';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
-  requiredPermission?: string;
+  children: ReactNode;
   allowedRoles?: string[];
-  redirectTo?: string;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-  children,
-  requiredPermission,
-  allowedRoles,
-  redirectTo = '/login'
-}) => {
+export default function ProtectedRoute({ children, allowedRoles = [] }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  React.useEffect(() => {
-    if (loading) return;
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.push('/login');
+        return;
+      }
 
-    if (!user) {
-      router.push(redirectTo);
-      return;
+      if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+        const redirectPath = getRoleRedirectPath (user.role);
+        router.push(redirectPath);
+        return;
+      }
     }
-
-    // Vérifier les rôles autorisés
-    if (allowedRoles && !allowedRoles.includes(user.role)) {
-      router.push('/unauthorized');
-      return;
-    }
-
-    // Vérifier les permissions requises
-    if (requiredPermission && !hasPermission(user, requiredPermission)) {
-      router.push('/unauthorized');
-      return;
-    }
-
-    // Vérifier l'accès à la route
-    const currentPath = window.location.pathname;
-    if (!canAccessRoute(user, currentPath)) {
-      router.push('/unauthorized');
-      return;
-    }
-  }, [user, loading, router, requiredPermission, allowedRoles, redirectTo]);
+  }, [user, loading, router, allowedRoles]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin h-12 w-12 border-b-2 border-blue-600 rounded-full"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
-  if (!user) {
+  if (!user || (allowedRoles.length > 0 && !allowedRoles.includes(user.role))) {
     return null;
   }
 
   return <>{children}</>;
-};
-
-export default ProtectedRoute;
+}

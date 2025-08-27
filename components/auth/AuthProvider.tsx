@@ -28,6 +28,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  
 
   useEffect(() => {
     // Récupérer l'utilisateur depuis le localStorage au chargement

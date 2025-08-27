@@ -12,14 +12,14 @@ export default function OrdoLayout({ children }: { children: ReactNode }) {
   
   return( 
   
-    <ProtectedRoute allowedRoles={['ordonnateur']}>
+    <ProtectedRoute allowedRoles={['regisseur_principal']}>
       <Topnav 
           navigationItems={topNav}
           isAuthenticated={true}
           notifications={3}
           user={{
-            name: user?.nom || 'Ordonnateur',
-            email: user?.email || 'ordonnateur@commune.mg'
+            name: user?.nom || 'Regisseur Principal',
+            email: user?.email || 'regisseurprincipal@gmc.com'
           }}
         />
    <div className='pl-0 md:pl-48 pt-0 min-h-screen'>

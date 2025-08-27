@@ -248,7 +248,7 @@ export const NAVIGATION_CONFIG = {
       ]
     },
     {
-      href: "/dashboard/ordonnateur/marchands",
+      href: "/dashboard/ordo/marchands",
       icon: Users,
       label: "Marchands"
     },
@@ -265,7 +265,21 @@ export const NAVIGATION_CONFIG = {
     {
       href: "/dashboard/ordonnateur/parametres",
       icon: Settings,
-      label: "Paramètres"
+      label: "Paramètres",
+      subItems: [
+        { 
+          href: "/dashboard/ordo/creerPrmc", 
+          label: "Creer PRMC",
+          icon: BookOpen,
+          description: "Créer un directeur"
+        },
+        { 
+          href: "/dashboard/ordonnateur/marches/statistiques",
+          label: "Statistiques",
+          icon: BarChart3,
+          description: "Voir les performances" 
+        }
+      ]
     }
   ] as UnifiedNavItem[],
 
@@ -294,6 +308,9 @@ export const NAVIGATION_CONFIG = {
         }
       ]
     },
+
+
+
     {
       href: "/dashboard/directeur/utilisateurs",
       icon: Users,
@@ -306,10 +323,10 @@ export const NAVIGATION_CONFIG = {
           description: "Voir tous les utilisateurs"
         },
         { 
-          href: "/dashboard/directeur/utilisateurs/roles", 
-          label: "Gestion des rôles",
+          href: "/dashboard/directeur/utilisateurs/creer", 
+          label: "Ajouter un utilisateur",
           icon: UserCheck,
-          description: "Attribuer des permissions"
+          description: "Creer nouveau compte"
         }
       ]
     },
@@ -324,6 +341,57 @@ export const NAVIGATION_CONFIG = {
       label: "Rapports"
     }
   ] as UnifiedNavItem[],
+
+
+REGISSEUR_PRINCIPAL: [
+    {
+      href: "/dashboard/regisseur_principal",
+      icon: Home,
+      label: "Accueil"
+    },
+    {
+      href: "/dashboard/regisseur_principal/marchands",
+      icon: Users,
+      label: "Marchands"
+    },
+    {
+      href: "/dashboard/regisseur_principal/marches",
+      icon: ShoppingCart,
+      label: "Marchés"
+    },
+    {
+      href: "/dashboard/redisseur-principal/paiements",
+      icon: CreditCard,
+      label: "Paiements"
+    },
+    {
+      href: "/dashboard/percepteur/recu",
+      icon: FileText,
+      label: "Reçus"
+    },
+    {
+      href: "/dashboard/directeur/marches",
+      icon: ShoppingCart,
+      label: "Gestion des marchés",
+      subItems: [
+        { 
+          href: "/dashboard/directeur/marches/creer", 
+          label: "Créer un marché",
+          icon: Plus,
+          description: "Ajouter un nouveau marché"
+        },
+        { 
+          href: "/dashboard/directeur/marches/liste", 
+          label: "Liste des marchés",
+          icon: BookOpen,
+          description: "Gérer les marchés existants"
+        }
+      ]
+    },
+]as UnifiedNavItem[],
+
+
+
 
   PERCEPTEUR: [
     {

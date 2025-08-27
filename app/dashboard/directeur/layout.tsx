@@ -18,12 +18,12 @@ export default function DirecteurLayout({ children }: { children: React.ReactNod
           isAuthenticated={true}
           notifications={5}
           user={{
-            name: user?.name || 'Directeur',
-            email: user?.email || 'directeur@commune.sn'
+            name: user?.nom || 'Directeur',
+            email: user?.email || 'directeur@commune.gmc'
           }}
         />
         <SideNav items={sideNav} />
-        <main className="pl-0 md:pl-48 pt-16 min-h-screen bg-gray-50">
+        <main className="pl-0 md:pl-48 pt-0 min-h-screen bg-gray-50">
           <div className="p-6">
             {children}
           </div>

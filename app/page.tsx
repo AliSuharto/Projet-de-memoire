@@ -20,11 +20,14 @@ export default function CustomLandingPage() {
     if (user) {
       // Utilisateur connecté, rediriger vers son dashboard
       router.push('/dashboard');
-    } else {
-      // Utilisateur non connecté, commencer la vérification de commune
-      setCheckingCommune(true);
     }
+    // Sinon, rester sur la page d'accueil
   }, [user, loading, router]);
+
+  const handleLoginClick = () => {
+    // Commencer la vérification de commune quand l'utilisateur clique sur "Se connecter"
+    setCheckingCommune(true);
+  };
 
   const handleCommuneExists = () => {
     // Commune trouvée, rediriger vers login
@@ -47,6 +50,7 @@ export default function CustomLandingPage() {
       <CommuneCheck
         onCommuneExists={handleCommuneExists}
         onNoCommuneFound={handleNoCommuneFound}
+        silent={true}
       />
     );
   }
@@ -161,28 +165,29 @@ export default function CustomLandingPage() {
           
           {/* CTA Button with modern design */}
           <div className="flex flex-col items-center space-y-10">
-            <Link href="/login">
-              <button className="group relative px-8 py-4 bg-blue-600 text-white font-semibold rounded-full shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 overflow-hidden">
-                {/* Button background animation */}
-                <div className="absolute inset-0 bg-white-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                
-                {/* Button content */}
-                <span className="relative z-10 flex items-center space-x-2">
-                  <span>Se connecter</span>
-                  <svg 
-                    className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300 cursor-pointer" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </span>
-                
-                {/* Shine effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-              </button>
-            </Link>
+            <button 
+              onClick={handleLoginClick}
+              className="group relative px-8 py-4 bg-blue-600 text-white font-semibold rounded-full shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 overflow-hidden"
+            >
+              {/* Button background animation */}
+              <div className="absolute inset-0 bg-white-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              
+              {/* Button content */}
+              <span className="relative z-10 flex items-center space-x-2">
+                <span>Se connecter</span>
+                <svg 
+                  className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300 cursor-pointer" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </span>
+              
+              {/* Shine effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+            </button>
           </div>
         </div>
         

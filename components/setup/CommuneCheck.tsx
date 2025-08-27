@@ -10,9 +10,10 @@ import communeService from '@/services/communeService';
 interface CommuneCheckProps {
   onCommuneExists?: () => void;
   onNoCommuneFound?: () => void;
+  silent?: boolean; // Pour désactiver les notifications toast
 }
 
-const CommuneCheck = ({ onCommuneExists, onNoCommuneFound }: CommuneCheckProps) => {
+const CommuneCheck = ({ onCommuneExists, onNoCommuneFound, silent = false }: CommuneCheckProps) => {
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -27,19 +28,26 @@ const CommuneCheck = ({ onCommuneExists, onNoCommuneFound }: CommuneCheckProps) 
       const response = await communeService.checkCommune();
 
       if (!response.success) {
+        console.log('Response error:', response);
         if (response.error === 'database_disconnected') {
           setError('database_disconnected');
-          showError('Erreur de connexion', 'Base de données non reliée. Veuillez réessayer.');
+          if (!silent) {
+            showError('Erreur de connexion', 'Base de données non reliée. Veuillez réessayer.');
+          }
         } else {
           setError('unknown_error');
-          showError('Erreur', response.message || 'Une erreur inattendue s\'est produite');
+          if (!silent) {
+            showError('Erreur', response.message || 'Une erreur inattendue s\'est produite');
+          }
         }
         return;
       }
 
       // Commune trouvée
       if (response.data) {
-        showSuccess('Commune trouvée', `Bienvenue dans ${response.data.nom}`);
+        if (!silent) {
+          showSuccess('Commune trouvée', `Bienvenue dans ${response.data.nom}`);
+        }
         if (onCommuneExists) {
           onCommuneExists();
         } else {
@@ -58,7 +66,9 @@ const CommuneCheck = ({ onCommuneExists, onNoCommuneFound }: CommuneCheckProps) 
     } catch (error) {
       console.error('Erreur lors de la vérification:', error);
       setError('unknown_error');
-      showError('Erreur', 'Une erreur inattendue s\'est produite');
+      if (!silent) {
+        showError('Erreur', 'Une erreur inattendue s\'est produite');
+      }
     } finally {
       setIsChecking(false);
     }

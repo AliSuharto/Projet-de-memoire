@@ -9,6 +9,8 @@ import Button from '@/components/ui/Button';
 import { useToast } from '@/components/ui/ToastContainer';
 import { useAuth } from '@/components/auth/AuthProvider';
 import authService, { LoginRequest } from '@/services/authService';
+import { getRoleRedirectPath } from '@/app/Utils/roleRedirection';
+import { AuthUser } from '@/lib/auth';
 
 interface LoginFormProps {
   redirectTo?: string;
@@ -38,25 +40,49 @@ const LoginForm = ({ redirectTo }: LoginFormProps) => {
 
     try {
       const response = await authService.login(data);
-
+      console.log('Réponse login:', response);
+      
       if (response.success && response.data) {
-        // Mettre à jour le contexte d'authentification
-        login(response.data.user);
+        const { token, user } = response.data;
         
-        showSuccess('Connexion réussie', `Bienvenue ${response.data.user.name}`);
+        // Stocker le token (si nécessaire pour votre authService)
+        if (token) {
+          localStorage.setItem('authToken', token);
+          // ou utiliser votre méthode de stockage de token
+        }
+        
+        // Récupérer le rôle mappé depuis authService
+        const mappedRole = authService.getUserRole();
+        
+        // Convertir vers AuthUser pour le contexte
+        const authUser: AuthUser = {
+          id: user.id,
+          email: user.email,
+          nom: user.nom,
+          prenom: user.prenom || '',
+          role: mappedRole,
+          avatar: user.photoUrl || undefined,
+          telephone: user.telephone
+        };
+        
+        // Mettre à jour le contexte d'authentification
+        login(authUser);
+        
+        // Message de succès avec le nom complet
+        const fullName = user.prenom ? `${user.nom} ${user.prenom}` : user.nom;
+        showSuccess('Connexion réussie', `Bienvenue ${fullName}`);
         
         // Redirection basée sur le rôle
-        const roleRoutes: { [key: string]: string } = {
-          'ordonnateur': '/dashboard/ordo',
-          'directeur': '/dashboard/directeur',
-          'regisseur': '/dashboard/regisseur',
-          'regisseur_principal': '/dashboard/regisseur-principal',
-          'percepteur': '/dashboard/perp',
-          'createur_marche': '/dashboard/createur-marche',
-        };
-
-        const dashboardRoute = roleRoutes[response.data.user.role.toLowerCase()] || '/dashboard';
-        router.push(redirectTo || dashboardRoute);
+        const dashboardRoute = getRoleRedirectPath(mappedRole);
+        const finalRedirect = redirectTo || dashboardRoute;
+        
+        console.log(`Redirection: ${mappedRole} -> ${finalRedirect}`);
+        
+        // Petite temporisation pour que l'utilisateur voie le message de succès
+        setTimeout(() => {
+          router.push(finalRedirect);
+        }, 500);
+        
       } else {
         showError('Connexion échouée', response.message || 'Identifiants incorrects');
       }
@@ -149,22 +175,6 @@ const LoginForm = ({ redirectTo }: LoginFormProps) => {
           {isLoading ? 'Connexion...' : 'Se connecter'}
         </Button>
       </form>
-
-      {/* Informations de démo */}
-      {/* <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <h3 className="text-sm font-medium text-blue-800 mb-2">
-          Comptes de démonstration
-        </h3>
-        <div className="text-xs text-blue-700 space-y-1">
-          <div><strong>Ordonnateur :</strong> ordonnateur@commune.sn</div>
-          <div><strong>Directeur :</strong> directeur@commune.sn</div>
-          <div><strong>Régisseur :</strong> regisseur@commune.sn</div>
-          <div><strong>Percepteur :</strong> percepteur@commune.sn</div>
-          <div className="mt-2 text-blue-600">
-            <em>Mot de passe : demo123</em>
-          </div>
-        </div>
-      </div> */}
 
       {/* Lien vers la configuration */}
       <div className="text-center">

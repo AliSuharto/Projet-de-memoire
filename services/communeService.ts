@@ -35,42 +35,67 @@ export interface ApiResponse<T> {
 
 class CommuneService {
   // Vérifier si une commune existe
-  async checkCommune(): Promise<ApiResponse<Commune | null>> {
+async checkCommune(): Promise<ApiResponse<boolean>> {
+  try {
+    const response = await api.get('/commune-check');
+    return {
+      success: true,
+      data: response.data.data, // ✅ On récupère juste le booléen
+      message: response.data.message,
+    };
+  } catch (error: any) {
+    if (error.code === 'ECONNREFUSED' || error.response?.status >= 500) {
+      return {
+        success: false,
+        error: 'database_disconnected',
+        message: 'Base de données non reliée',
+      };
+    }
+    
+    if (error.response?.status === 404) {
+      return {
+        success: true,
+        data: false,
+        message: 'Aucune commune trouvée',
+      };
+    }
+
+    return {
+      success: false,
+      error: 'unknown_error',
+      message: 'Une erreur inattendue s\'est produite',
+    };
+  }
+}
+
+  // Envoyer le code de validation (avant création)
+  async sendValidationCode(email: string): Promise<ApiResponse<any>> {
     try {
-      const response = await api.get('/commune/check');
+      const response = await api.post('/ordonnateur/init', { email });
       return {
         success: true,
         data: response.data,
+        message: 'Code de validation envoyé avec succès',
       };
-    } catch (error: any) {
-      if (error.code === 'ECONNREFUSED' || error.response?.status >= 500) {
-        return {
-          success: false,
-          error: 'database_disconnected',
-          message: 'Base de données non reliée',
-        };
-      }
       
-      if (error.response?.status === 404) {
-        return {
-          success: true,
-          data: null,
-          message: 'Aucune commune trouvée',
-        };
-      }
-
+    } catch (error: any) {
+       console.error('Full error:', error);
+  console.error('Error message:', error.message);
+  console.error('Error config:', error.config);
+  console.error('Error request:', error.request);
       return {
         success: false,
-        error: 'unknown_error',
-        message: 'Une erreur inattendue s\'est produite',
+        error: error.response?.data?.error || 'send_code_failed',
+        message: error.response?.data?.message || 'Échec de l\'envoi du code',
       };
     }
   }
 
-  // Créer une commune et un ordonnateur
-  async createCommuneOrdonnateur(data: CommuneOrdonnateur): Promise<ApiResponse<any>> {
+  // Créer une commune et un ordonnateur avec le code de validation
+  async createCommuneOrdonnateur(data: CommuneOrdonnateur & { validationCode: string }): Promise<ApiResponse<any>> {
     try {
-      const response = await api.post('/communeordonnateur/create', data);
+      const response = await api.post('/finalize', data);
+     
       return {
         success: true,
         data: response.data,

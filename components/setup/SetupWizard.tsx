@@ -48,32 +48,10 @@ const SetupWizard = () => {
       return;
     }
 
-    setIsLoading(true);
+    // Stocker les données de l'ordonnateur et passer à l'étape suivante
+    // Le code a déjà été envoyé dans OrdonnateurForm
     setOrdonnateurData(data);
-
-    try {
-      const payload: CommuneOrdonnateur = {
-        commune: communeData,
-        ordonnateur: data,
-      };
-
-      const response = await communeService.createCommuneOrdonnateur(payload);
-
-      if (response.success) {
-        showSuccess(
-          'Création réussie', 
-          'Un code de validation a été envoyé à votre email'
-        );
-        setCurrentStep(3);
-      } else {
-        showError('Erreur de création', response.message || 'Impossible de créer la commune');
-      }
-    } catch (error) {
-      console.error('Erreur de création:', error);
-      showError('Erreur', 'Une erreur inattendue est survenue');
-    } finally {
-      setIsLoading(false);
-    }
+    setCurrentStep(3);
   };
 
   const handleBackToCommune = () => {
@@ -109,6 +87,8 @@ const SetupWizard = () => {
         return (
           <CodeValidation
             email={ordonnateurData?.email || ''}
+            communeData={communeData}
+            ordonnateurData={ordonnateurData}
             onBack={handleBackToOrdonnateur}
           />
         );

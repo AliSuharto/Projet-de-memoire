@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+
+import { useAuth } from '@/components/auth/AuthProvider';
 import { 
   Menu, 
   Bell, 
@@ -63,10 +65,16 @@ export default function Topnav({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const { logout } = useAuth();
   
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+const handleLogout = () => {
 
+    logout();
+    // Si vous avez une redirection spécifique après déconnexion
+    window.location.href = '/login';
+  };
   // Fermer les menus quand on clique ailleurs
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -227,7 +235,9 @@ export default function Topnav({
                       Paramètres
                     </Link>
                     <hr className="my-2 border-gray-100" />
-                    <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center space-x-2">
+                    <button
+                     onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center space-x-2">
                       <LogOut className="w-4 h-4" />
                       <span>Déconnexion</span>
                     </button>

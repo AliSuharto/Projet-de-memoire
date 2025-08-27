@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { User, Mail, Phone } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import { useToast } from '@/components/ui/ToastContainer';
 import { Ordonnateur } from '@/services/communeService';
 
 interface OrdonnateurFormProps {
@@ -18,26 +20,52 @@ interface FormData extends Ordonnateur {
   prenom: string;
   email: string;
   telephone?: string;
+  password: string;
+  confirmPassword: string;
 }
 
 const OrdonnateurForm = ({ onNext, onBack, initialData, isLoading }: OrdonnateurFormProps) => {
+  const [sendingCode, setSendingCode] = useState(false);
+  const { showError, showSuccess } = useToast();
+  
   const {
     register,
     handleSubmit,
     formState: { errors, isValid },
   } = useForm<FormData>({
     defaultValues: {
-      nom: initialData?.nom || '',
-      prenom: initialData?.prenom || '',
-      email: initialData?.email || '',
-      telephone: initialData?.telephone || '',
-    },
+  nom: initialData?.nom || '',
+  prenom: initialData?.prenom || '',
+  email: initialData?.email || '',
+  telephone: initialData?.telephone || '',
+  password: '',
+  confirmPassword: '',
+  },
     mode: 'onChange',
   });
 
-  const onSubmit = (data: FormData) => {
-    onNext(data);
-  };
+  const onSubmit = async (data: FormData) => {
+  const { confirmPassword, ...dataToSend } = data; // on enlève confirmPassword
+  setSendingCode(true);
+  
+  try {
+    const { default: communeService } = await import('@/services/communeService');
+    console.log('Envoi du code à:', dataToSend.email);
+    const response = await communeService.sendValidationCode(dataToSend.email);
+    
+    if (response.success) {
+      showSuccess('Code envoyé', 'Un code de validation a été envoyé à votre email');
+      onNext(dataToSend); // on passe dataToSend sans confirmPassword
+    } else {
+      showError('Erreur d\'envoi', response.message || 'Impossible d\'envoyer le code de validation');
+    }
+  } catch (error) {
+    console.error('Erreur lors de l\'envoi du code:', error);
+    showError('Erreur', 'Une erreur inattendue s\'est produite lors de l\'envoi du code');
+  } finally {
+    setSendingCode(false);
+  }
+};
 
   return (
     <div className="space-y-6">
@@ -131,6 +159,45 @@ const OrdonnateurForm = ({ onNext, onBack, initialData, isLoading }: Ordonnateur
           })}
         />
 
+
+<div className="flex gap-4">
+  <div className="w-1/2">
+    
+
+
+        <Input
+        label="Mot de passe"
+        type="password"
+        placeholder="********"
+        error={errors.password?.message}
+        required
+        {...register('password', {
+          required: 'Le mot de passe est requis',
+          minLength: {
+            value: 6,
+            message: 'Le mot de passe doit contenir au moins 6 caractères',
+          },
+        })}
+      />
+         </div>
+      {/* Confirmer le mot de passe */}
+      <div className="w-1/2">
+        
+      <Input
+        label="Confirmer le mot de passe"
+        type="password"
+        placeholder="********"
+        error={errors.confirmPassword?.message}
+        required
+        {...register('confirmPassword', {
+          required: 'Veuillez confirmer le mot de passe',
+          validate: (value, { password }) =>
+            value === password || 'Les mots de passe ne correspondent pas',
+        })}
+      />
+      </div>
+      </div>
+
         {/* Informations importantes */}
         <div className="rounded-lg bg-blue-50 p-4">
           <div className="flex">
@@ -169,9 +236,9 @@ const OrdonnateurForm = ({ onNext, onBack, initialData, isLoading }: Ordonnateur
           <Button
             type="submit"
             disabled={!isValid}
-            loading={isLoading}
+            loading={sendingCode || isLoading}
           >
-            Créer la commune
+            {sendingCode ? 'Envoi du code...' : 'Envoyer le code'}
           </Button>
         </div>
       </form>

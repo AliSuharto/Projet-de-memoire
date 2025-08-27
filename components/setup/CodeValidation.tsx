@@ -9,10 +9,12 @@ import communeService from '@/services/communeService';
 
 interface CodeValidationProps {
   email: string;
+  communeData: any; // Données de la commune
+  ordonnateurData: any; // Données de l'ordonnateur
   onBack?: () => void;
 }
 
-const CodeValidation = ({ email, onBack }: CodeValidationProps) => {
+const CodeValidation = ({ email, communeData, ordonnateurData, onBack }: CodeValidationProps) => {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [isValidating, setIsValidating] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -81,23 +83,28 @@ const CodeValidation = ({ email, onBack }: CodeValidationProps) => {
     setIsValidating(true);
 
     try {
-      const response = await communeService.validateCode({
-        email,
-        code: fullCode,
-      });
-
+      // Créer le compte complet avec les données commune + ordonnateur + code
+      const payload = {
+        commune: communeData,
+        ordonnateur: ordonnateurData,
+        validationCode: fullCode,
+        email: ordonnateurData.email, // Ajout de l'email ici
+      };
+        console.log('Payload de création:', payload);
+      const response = await communeService.createCommuneOrdonnateur(payload);
+        
       if (response.success) {
-        showSuccess('Validation réussie', 'Votre compte a été créé avec succès');
+        showSuccess('Compte créé avec succès', 'Votre commune et compte ordonnateur ont été créés');
         router.push('/login');
       } else {
-        showError('Code invalide', response.message || 'Le code saisi est incorrect');
+        showError('Erreur de création', response.message || 'Impossible de créer le compte');
         // Réinitialiser le code en cas d'erreur
         setCode(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       }
     } catch (error) {
-      console.error('Erreur de validation:', error);
-      showError('Erreur', 'Une erreur est survenue lors de la validation');
+      console.error('Erreur de création:', error);
+      showError('Erreur', 'Une erreur est survenue lors de la création du compte');
     } finally {
       setIsValidating(false);
     }
@@ -107,7 +114,7 @@ const CodeValidation = ({ email, onBack }: CodeValidationProps) => {
     setIsResending(true);
 
     try {
-      const response = await communeService.resendCode(email);
+      const response = await communeService.sendValidationCode(email);
 
       if (response.success) {
         showSuccess('Code renvoyé', 'Un nouveau code a été envoyé à votre email');

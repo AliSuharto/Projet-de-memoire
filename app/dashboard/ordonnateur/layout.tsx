@@ -18,8 +18,8 @@ export default function OrdonnateurLayout({ children }: { children: React.ReactN
           isAuthenticated={true}
           notifications={3}
           user={{
-            name: user?.name || 'Ordonnateur',
-            email: user?.email || 'ordonnateur@commune.sn'
+            name: user?.nom || 'Ordonnateur',
+            email: user?.email || 'ordonnateur@commune.mg'
           }}
         />
         <SideNav items={sideNav} />

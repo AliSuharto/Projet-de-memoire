@@ -277,3 +277,5 @@ Si vous rencontrez des problèmes :
 
 **Votre plateforme e-GMC est maintenant prête à être utilisée avec tous ses composants réutilisables ! 🎉**
 
+
+
