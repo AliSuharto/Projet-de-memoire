@@ -37,13 +37,17 @@ class CommuneService {
   // Vérifier si une commune existe
 async checkCommune(): Promise<ApiResponse<boolean>> {
   try {
-    const response = await api.get('/commune-check');
+    const response = await api.get('/public/commune-check');
     return {
       success: true,
       data: response.data.data, // ✅ On récupère juste le booléen
       message: response.data.message,
     };
-  } catch (error: any) {
+    
+  }
+  
+  
+  catch (error: any) {
     if (error.code === 'ECONNREFUSED' || error.response?.status >= 500) {
       return {
         success: false,
@@ -71,7 +75,7 @@ async checkCommune(): Promise<ApiResponse<boolean>> {
   // Envoyer le code de validation (avant création)
   async sendValidationCode(email: string): Promise<ApiResponse<any>> {
     try {
-      const response = await api.post('/ordonnateur/init', { email });
+      const response = await api.post('/public/ordonnateur/init', { email });
       return {
         success: true,
         data: response.data,
@@ -94,7 +98,7 @@ async checkCommune(): Promise<ApiResponse<boolean>> {
   // Créer une commune et un ordonnateur avec le code de validation
   async createCommuneOrdonnateur(data: CommuneOrdonnateur & { validationCode: string }): Promise<ApiResponse<any>> {
     try {
-      const response = await api.post('/finalize', data);
+      const response = await api.post('public/finalize', data);
      
       return {
         success: true,
@@ -148,3 +152,6 @@ async checkCommune(): Promise<ApiResponse<boolean>> {
 }
 
 export default new CommuneService();
+
+
+

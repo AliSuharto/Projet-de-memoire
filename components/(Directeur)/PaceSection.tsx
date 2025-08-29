@@ -4,11 +4,6 @@ import { Plus,X} from 'lucide-react';
 
 
 // Place Section Component
-interface Place {
-  id: string;
-  name: string;
-  identifier: string;
-}
 
 
 interface PlaceSectionProps {
@@ -31,8 +26,8 @@ const PlaceSection: React.FC<PlaceSectionProps> = ({
   const handleAddPlace = () => {
     const newPlace: Place = {
       id: generateId(),
-      name: '',
-      identifier: ''
+      nom: '',
+      numero: ''
     };
     onAddPlace(newPlace);
   };
@@ -94,8 +89,8 @@ const PlaceSection: React.FC<PlaceSectionProps> = ({
               </label>
               <input
                 type="text"
-                value={place.name}
-                onChange={(e) => onUpdatePlace(index, { ...place, name: e.target.value })}
+                value={place.nom}
+                onChange={(e) => onUpdatePlace(index, { ...place, nom: e.target.value })}
                 className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${focusColor}`}
                 placeholder="Nom de la place"
               />
@@ -106,8 +101,8 @@ const PlaceSection: React.FC<PlaceSectionProps> = ({
               </label>
               <input
                 type="text"
-                value={place.identifier}
-                onChange={(e) => onUpdatePlace(index, { ...place, identifier: e.target.value })}
+                value={place.numero}
+                onChange={(e) => onUpdatePlace(index, { ...place, numero: e.target.value })}
                 className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${focusColor}`}
                 placeholder="Identifiant unique"
               />

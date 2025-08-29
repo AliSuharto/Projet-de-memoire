@@ -145,7 +145,8 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
     '/dashboard',
     '/dashboard/prmc',
     '/dashboard/directeur/utilisateurs/liste',
-    '/dashboard/directeur/utilisateurs/creer'
+    '/dashboard/directeur/utilisateurs/creer',
+    '/dashboard/directeur/marches/[marketId]',
   ],
   Ordonnateur: [
     '/dashboard',

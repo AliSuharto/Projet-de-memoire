@@ -301,7 +301,7 @@ export const NAVIGATION_CONFIG = {
           description: "Ajouter un nouveau marché"
         },
         { 
-          href: "/dashboard/directeur/marches/liste", 
+          href: "/dashboard/directeur/marches/listeMarches", 
           label: "Liste des marchés",
           icon: BookOpen,
           description: "Gérer les marchés existants"
@@ -330,8 +330,40 @@ export const NAVIGATION_CONFIG = {
         }
       ]
     },
+
+{
+      href: "/dashboard/directeur/marchand",
+      icon: Users,
+      label: "Marchands",
+      subItems: [
+        { 
+          href: "/dashboard/directeur/marchand/liste", 
+          label: "Liste des marchands",
+          icon: Users,
+          description: "Voir tous les marchands"
+        },
+        { 
+          href: "/dashboard/directeur/marchand/creer", 
+          label: "Ajouter un marchands",
+          icon: UserCheck,
+          description: "Creer nouveau compte"
+        },
+         { 
+          href: "/dashboard/directeur/marchand/creer_multiple", 
+          label: "Ajouter multiple de marchands",
+          icon: UserCheck,
+          description: "Ajouter plusieurs marchands en une fois"
+        }
+      ]
+    },
+
+
+
+
+
+
     {
-      href: "/dashboard/directeur/permissions",
+      href: "/dashboard/directeur/marches/liste",
       icon: Settings,
       label: "Permissions"
     },
@@ -381,7 +413,7 @@ REGISSEUR_PRINCIPAL: [
           description: "Ajouter un nouveau marché"
         },
         { 
-          href: "/dashboard/directeur/marches/liste", 
+          href: "/dashboard/directeur/marches/listeMarches", 
           label: "Liste des marchés",
           icon: BookOpen,
           description: "Gérer les marchés existants"

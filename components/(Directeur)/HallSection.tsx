@@ -24,8 +24,8 @@ const HallSection: React.FC<HallSectionProps> = ({
   const handleAddHall = () => {
     const newHall: Hall = {
       id: generateId(),
-      name: '',
-      identifier: '',
+      nom: '',
+      description: '',
       places: []
     };
     onAddHall(newHall);
@@ -79,22 +79,22 @@ const HallSection: React.FC<HallSectionProps> = ({
               </label>
               <input
                 type="text"
-                value={hall.name}
-                onChange={(e) => onUpdateHall(hallIndex, { ...hall, name: e.target.value })}
+                value={hall.nom}
+                onChange={(e) => onUpdateHall(hallIndex, { ...hall, nom: e.target.value })}
                 className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${focusColor}`}
                 placeholder="Nom du hall"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Identifiant
+                Description
               </label>
               <input
                 type="text"
-                value={hall.identifier}
-                onChange={(e) => onUpdateHall(hallIndex, { ...hall, identifier: e.target.value })}
+                value={hall.description}
+                onChange={(e) => onUpdateHall(hallIndex, { ...hall, description: e.target.value })}
                 className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${focusColor}`}
-                placeholder="Identifiant unique"
+                placeholder="Description du hall"
               />
             </div>
           </div>

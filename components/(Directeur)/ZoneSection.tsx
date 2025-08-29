@@ -5,24 +5,6 @@ import HallSection from './HallSection';
 
 
 
-interface Place {
-  id: string;
-  name: string;
-  identifier: string;
-}
-
-
-
-interface Zone {
-  id: string;
-  name: string;
-  identifier: string;
-  halls: Hall[];
-  places: Place[];
-}
-
-
-
 interface ZoneSectionProps {
   zones: Zone[];
   onAddZone: (zone: Zone) => void;
@@ -40,8 +22,8 @@ const ZoneSection: React.FC<ZoneSectionProps> = ({
   const handleAddZone = () => {
     const newZone: Zone = {
       id: generateId(),
-      name: '',
-      identifier: '',
+      nom: '',
+      description: '',
       halls: [],
       places: []
     };
@@ -137,22 +119,22 @@ const handleDeleteHallFromZone = (zoneIndex: number, hallIndex: number) => {
               </label>
               <input
                 type="text"
-                value={zone.name}
-                onChange={(e) => onUpdateZone(zoneIndex, { ...zone, name: e.target.value })}
+                value={zone.nom}
+                onChange={(e) => onUpdateZone(zoneIndex, { ...zone, nom: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Nom de la zone"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Identifiant
+                Description
               </label>
               <input
                 type="text"
-                value={zone.identifier}
-                onChange={(e) => onUpdateZone(zoneIndex, { ...zone, identifier: e.target.value })}
+                value={zone.description}
+                onChange={(e) => onUpdateZone(zoneIndex, { ...zone, description: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Identifiant unique"
+                placeholder="Description de la zone"
               />
             </div>
           </div>

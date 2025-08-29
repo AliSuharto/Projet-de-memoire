@@ -1,5 +1,5 @@
 'use client';
-
+import axios from 'axios';
 import React, { useState } from 'react';
 import {  Save, X, AlertCircle } from 'lucide-react';
 import PlaceSection from '@/components/(Directeur)/PaceSection';
@@ -74,8 +74,8 @@ const MarketForm: React.FC<MarketFormProps> = ({ market, onChange }) => {
           </label>
           <input
             type="text"
-            value={market.name}
-            onChange={(e) => onChange({ ...market, name: e.target.value })}
+            value={market.nom}
+            onChange={(e) => onChange({ ...market, nom: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Entrez le nom du marché"
           />
@@ -86,8 +86,8 @@ const MarketForm: React.FC<MarketFormProps> = ({ market, onChange }) => {
           </label>
           <input
             type="text"
-            value={market.address}
-            onChange={(e) => onChange({ ...market, address: e.target.value })}
+            value={market.adresse}
+            onChange={(e) => onChange({ ...market, adresse: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Entrez l'adresse du marché"
           />
@@ -112,8 +112,8 @@ const MarketForm: React.FC<MarketFormProps> = ({ market, onChange }) => {
 const MarketManager: React.FC = () => {
   const [market, setMarket] = useState<Market>({
     id: generateId(),
-    name: '',
-    address: '',
+    nom: '',
+    adresse: '',
     description: '',
     zones: [],
     halls: [],
@@ -219,17 +219,85 @@ const handleDeletePlace = (index: number, level: 'market' | { zoneIndex?: number
   });
 };
 
-  const handleSave = () => {
-    console.log('Marché sauvegardé:', market);
-    setShowSaveModal(false);
-    // Ici vous pouvez ajouter la logique de sauvegarde (API call, etc.)
-  };
+
+const removeIds = (obj: any): any => {
+  if (Array.isArray(obj)) {
+    return obj.map(item => removeIds(item));
+  } else if (obj !== null && typeof obj === 'object') {
+    const newObj: any = {};
+    for (const key in obj) {
+      if (key !== 'id') {
+        newObj[key] = removeIds(obj[key]);
+      }
+    }
+    return newObj;
+  }
+  return obj;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const handleSave = async () => {
+  console.log('Marché sauvegardé:', market);
+  setShowSaveModal(false);
+
+  try {
+    // Récupérer le token depuis localStorage (ou un autre storage)
+    const cleanedMarket = removeIds(market); //  On nettoie l'objet
+    const token = localStorage.getItem('token');
+    console.log('Données du marché à envoyer:', cleanedMarket);
+
+    // Vérifier que le token existe
+    if (!token) {
+      console.error('Aucun token trouvé. Veuillez vous connecter.');
+      return;
+    }
+
+    // Envoi de la requête POST avec Bearer Token
+    const response = await axios.post(
+      'http://localhost:8080/api/marchees', // Remplace par ton endpoint exact
+      cleanedMarket, // Données à envoyer
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`, // Ajout du Bearer token
+        },
+      }
+    );
+
+    console.log('Marché enregistré avec succès:', response.data);
+
+    // Réinitialiser le formulaire après une sauvegarde réussie
+    setMarket({ 
+        id: generateId(),
+        nom: '',
+        adresse: '',
+        description: '',
+        zones: [],
+        halls: [],
+        places: []
+        });
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde du marché:', error);
+  }
+};
 
   const handleCancel = () => {
     setMarket({
       id: generateId(),
-      name: '',
-      address: '',
+      nom: '',
+      adresse: '',
       description: '',
       zones: [],
       halls: [],
@@ -261,24 +329,23 @@ const handleDeletePlace = (index: number, level: 'market' | { zoneIndex?: number
     const { totalHalls, totalPlaces } = getTotalCounts();
     return `Voulez-vous vraiment sauvegarder ce marché ?
     
-Nom: ${market.name || 'Non défini'}
+Nom: ${market.nom || 'Non défini'}
 Zones: ${market.zones.length}
 Halls: ${totalHalls} 
 Places: ${totalPlaces}`;
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">Creation de Marchés</h1>
-        
-        <MarketForm 
-          market={market} 
-          onChange={handleMarketChange}
-        />
-        
-        {/* Boutons d'ajout au niveau du marché */}
-        <div className="flex flex-wrap gap-4 mb-6">
+  <div className="min-h-screen bg-gray-100 p-4">
+    <div className="max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold text-gray-800 mb-8">Création de Marchés</h1>
+
+      <MarketForm market={market} onChange={handleMarketChange} />
+
+      {/* Conteneur flex pour les trois sections */}
+      <div className="flex items-center justify-start gap-6 mt-6">
+        {/* ZoneSection */}
+        <div className="flex-1">
           <ZoneSection
             zones={market.zones}
             onAddZone={handleAddZone}
@@ -287,62 +354,72 @@ Places: ${totalPlaces}`;
           />
         </div>
 
-        <HallSection
-          halls={market.halls}
-          onAddHall={handleAddHall}
-          onUpdateHall={handleUpdateHall}
-          onDeleteHall={(index) => handleDeleteHall(index, 'market')}
-          level="market"
-        />
+        {/* HallSection */}
+        <div className="flex-1">
+          <HallSection
+            halls={market.halls}
+            onAddHall={handleAddHall}
+            onUpdateHall={handleUpdateHall}
+            onDeleteHall={(index) => handleDeleteHall(index, 'market')}
+            level="market"
+          />
+        </div>
 
-        <PlaceSection
-          places={market.places}
-          onAddPlace={handleAddPlace}
-          onUpdatePlace={handleUpdatePlace}
-          onDeletePlace={(index) => handleDeletePlace(index, 'market')}
-          level="market"
-        />
-        
-        <div className="flex justify-end space-x-4 mt-8">
-          <button
-            onClick={() => setShowCancelModal(true)}
-            className="flex items-center px-6 py-2 text-red-600 border border-red-600 rounded-md hover:bg-red-50"
-          >
-            <X size={16} className="mr-2" />
-            Annuler
-          </button>
-      <button
-        onClick={() => setShowSaveModal(true)}
-      >
-        <Save size={16} className="mr-2" />
-        Sauvegarder
-      </button>
-    </div>
-
-    {/* Confirmation Modals */}
-    <ConfirmationModal
-      isOpen={showCancelModal}
-      title="Annuler la création"
-      message="Voulez-vous vraiment annuler la création de ce marché ? Toutes les données saisies seront perdues."
-      confirmText="Oui, annuler"
-      cancelText="Continuer"
-      onConfirm={handleCancel}
-      onCancel={() => setShowCancelModal(false)}
-      variant="cancel"
-    />
-    <ConfirmationModal
-      isOpen={showSaveModal}
-      title="Sauvegarder le marché"
-      message={getSaveMessage()}
-      confirmText="Oui, sauvegarder"
-      cancelText="Annuler"
-      onConfirm={handleSave}
-      onCancel={() => setShowSaveModal(false)}
-      variant="save"
-    />
+        {/* PlaceSection */}
+        <div className="flex-1">
+          <PlaceSection
+            places={market.places}
+            onAddPlace={handleAddPlace}
+            onUpdatePlace={handleUpdatePlace}
+            onDeletePlace={(index) => handleDeletePlace(index, 'market')}
+            level="market"
+          />
+        </div>
       </div>
+
+      {/* Boutons d'action */}
+      <div className="flex justify-end space-x-4 mt-8">
+        <button
+          onClick={() => setShowCancelModal(true)}
+          className="flex items-center px-6 py-2 text-red-600 border border-red-600 rounded-md hover:bg-red-50"
+        >
+          <X size={16} className="mr-2" />
+          Annuler
+        </button>
+        <button
+          onClick={() => setShowSaveModal(true)}
+          className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          <Save size={16} className="mr-2" />
+          Sauvegarder
+        </button>
+      </div>
+
+      {/* Confirmation Modals */}
+      <ConfirmationModal
+        isOpen={showCancelModal}
+        title="Annuler la création"
+        message="Voulez-vous vraiment annuler la création de ce marché ? Toutes les données saisies seront perdues."
+        confirmText="Oui, annuler"
+        cancelText="Continuer"
+        onConfirm={handleCancel}
+        onCancel={() => setShowCancelModal(false)}
+        variant="cancel"
+      />
+      <ConfirmationModal
+        isOpen={showSaveModal}
+        title="Sauvegarder le marché"
+        message={getSaveMessage()}
+        confirmText="Oui, sauvegarder"
+        cancelText="Annuler"
+        onConfirm={handleSave}
+        onCancel={() => setShowSaveModal(false)}
+        variant="save"
+      />
     </div>
-  );
+  </div>
+);
+
 };
 
 export default MarketManager;
