@@ -107,7 +107,7 @@ const categorieService = {
 
   // Supprimer une catégorie
   delete: async (id: number): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/public/categories/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ const categorieService = {
 
   // Récupérer les détails d'une catégorie
   getById: async (id: number): Promise<Categorie> => {
-    const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/public/categories/${id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

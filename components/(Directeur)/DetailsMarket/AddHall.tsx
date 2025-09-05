@@ -39,46 +39,55 @@ const AddHallModal: React.FC<AddHallModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.nom.trim()) {
-      setError("Le nom du hall est requis");
-      return;
+  e.preventDefault();
+  if (!formData.nom.trim()) {
+    setError("Le nom du hall est requis");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    setError(null);
+
+    // Construction conditionnelle du payload
+    let payload: any = {
+      nom: formData.nom,
+      description: formData.description,
+      ...(formData.numero && { numero: parseInt(formData.numero) }),
+    };
+
+    if (formData.zoneId) {
+      // Si zone sélectionnée → envoyer zoneId
+      payload.zoneId = parseInt(formData.zoneId);
+    } else {
+      // Sinon → envoyer marcheeId
+      payload.marcheeId = marcheeId;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    console.log("Submitting payload:", payload);
 
-      const payload = {
-        nom: formData.nom,
-        description: formData.description,
-        marcheeId,
-        ...(formData.numero && { numero: parseInt(formData.numero) }),
-        ...(formData.zoneId && { zoneId: parseInt(formData.zoneId) }),
-      };
+    const response = await fetch("http://localhost:8080/api/public/salles", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
 
-      const response = await fetch("/api/halls", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Erreur lors de la création");
-      }
-
-      // Réinitialiser le formulaire
-      setFormData({ nom: "", numero: "", description: "", zoneId: "" });
-      onSuccess();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Erreur lors de la création");
     }
-  };
+
+    // Réinitialiser le formulaire
+    setFormData({ nom: "", numero: "", description: "", zoneId: "" });
+    onSuccess();
+  } catch (err: any) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

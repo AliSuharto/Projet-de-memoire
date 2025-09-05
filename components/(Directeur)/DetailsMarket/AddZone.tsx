@@ -48,7 +48,7 @@ const AddZoneModal: React.FC<AddZoneModalProps> = ({
         marcheeId,
       }),
     });
-    console.log("API response:", response);
+    console.log("API response:", marcheeId, response);
 
     if (!response.ok) {
       let message = "Erreur lors de la création";

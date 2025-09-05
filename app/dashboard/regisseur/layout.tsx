@@ -23,7 +23,7 @@ export default function RegisseurLayout({ children }: { children: React.ReactNod
           }}
         />
         <SideNav items={sideNav} />
-        <main className="pl-0 md:pl-48 pt-0 min-h-screen bg-gray-50">
+        <main className="pl-0 md:pl-48 min-h-screen bg-gray-50">
           <div className="p-6">
             {children}
           </div>

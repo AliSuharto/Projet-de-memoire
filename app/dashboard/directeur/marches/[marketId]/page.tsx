@@ -6,6 +6,11 @@ import Link from "next/link";
 import AddPlaceModal from "@/components/(Directeur)/DetailsMarket/AddPlace";
 import AddHallModal from "@/components/(Directeur)/DetailsMarket/AddHall";
 import AddZoneModal from "@/components/(Directeur)/DetailsMarket/AddZone";
+import ZoneDetailView from "@/components/(Directeur)/ZonedetailsView";
+import HallDetailView from "@/components/HallDetailsView";
+import PlacesTable from "@/components/(Directeur)/PlaceTable";
+import SectionsListView from "@/components/SectionListView";
+
 
 interface Zone {
   id: number;
@@ -25,6 +30,8 @@ interface Hall {
   nom: string;
   description?: string;
   places?: Place[];
+  zoneId?: number;
+  zoneName?: string;
 }
 
 interface Marchee {
@@ -38,6 +45,7 @@ interface Marchee {
 }
 
 type ActiveSection = 'zones' | 'halls' | 'places' | null;
+type ViewLevel = 'sections' | 'zone-detail' | 'hall-detail';
 
 const MarcheeDetailsPage: React.FC = () => {
   const params = useParams();
@@ -49,6 +57,9 @@ const MarcheeDetailsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<ActiveSection>(null);
+  const [viewLevel, setViewLevel] = useState<ViewLevel>('sections');
+  const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
+  const [selectedHall, setSelectedHall] = useState<Hall | null>(null);
 
   // States pour contrôler les modals
   const [showZoneModal, setShowZoneModal] = useState(false);
@@ -96,22 +107,54 @@ const MarcheeDetailsPage: React.FC = () => {
 
   const handleSectionClick = (section: ActiveSection) => {
     setActiveSection(activeSection === section ? null : section);
+    setViewLevel('sections');
+    setSelectedZone(null);
+    setSelectedHall(null);
+  };
+
+  const handleZoneClick = (zone: Zone) => {
+    setSelectedZone(zone);
+    setViewLevel('zone-detail');
+    setActiveSection('zones');
+  };
+
+  const handleHallClick = (hall: Hall) => {
+    // Enrichir le hall avec les informations de zone si disponible
+    const enrichedHall = { ...hall };
+    if (selectedZone) {
+      enrichedHall.zoneId = selectedZone.id;
+      enrichedHall.zoneName = selectedZone.nom;
+    }
+    setSelectedHall(enrichedHall);
+    setViewLevel('hall-detail');
+    setActiveSection('halls');
+  };
+
+  const handleBackToSections = () => {
+    setViewLevel('sections');
+    setSelectedZone(null);
+    setSelectedHall(null);
+  };
+
+  const handleBackToZone = () => {
+    setViewLevel('zone-detail');
+    setSelectedHall(null);
   };
 
   const handleAddClick = (section: ActiveSection) => {
-  console.log("Bouton + cliqué, section =", section); // 🔍 debug
-  switch (section) {
-    case 'zones':
-      setShowZoneModal(true);
-      break;
-    case 'halls':
-      setShowHallModal(true);
-      break;
-    case 'places':
-      setShowPlaceModal(true);
-      break;
-  }
-};
+    console.log("Bouton + cliqué, section =", section);
+    switch (section) {
+      case 'zones':
+        setShowZoneModal(true);
+        break;
+      case 'halls':
+        setShowHallModal(true);
+        break;
+      case 'places':
+        setShowPlaceModal(true);
+        break;
+    }
+  };
 
   const onModalSuccess = () => {
     fetchMarcheeDetails(id!);
@@ -156,13 +199,40 @@ const MarcheeDetailsPage: React.FC = () => {
     );
   }
 
+  const getDetailViewTitle = () => {
+    if (viewLevel === 'zone-detail' && selectedZone) {
+      return `Zone: ${selectedZone.nom}`;
+    }
+    if (viewLevel === 'hall-detail' && selectedHall) {
+      return `Hall: ${selectedHall.nom}`;
+    }
+    if (activeSection) {
+      return activeSection.charAt(0).toUpperCase() + activeSection.slice(1);
+    }
+    return 'Sélectionnez une section';
+  };
+
+  const shouldShowAddButton = () => {
+    return (
+      (viewLevel === 'sections' && activeSection) ||
+      (viewLevel === 'zone-detail') ||
+      (viewLevel === 'hall-detail')
+    );
+  };
+
+  const getAddButtonSection = (): ActiveSection => {
+    if (viewLevel === 'hall-detail') return 'places';
+    if (viewLevel === 'zone-detail') return selectedZone ? 'halls' : null;
+    return activeSection;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-8xl mx-auto">
         {/* Bouton retour */}
         <button
           onClick={() => router.back()}
-          className="mb-4 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md"
+          className="mb-4 px-2 bg-gray-200 hover:bg-gray-300 rounded-md"
         >
           ← Retour
         </button>
@@ -255,149 +325,66 @@ const MarcheeDetailsPage: React.FC = () => {
           </div>
 
           {/* Colonne droite - Détails de la section sélectionnée */}
-
           <div className="bg-white shadow-lg rounded-lg p-6 border-2 border-blue-300">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-gray-800">
-                {activeSection ? activeSection.charAt(0).toUpperCase() + activeSection.slice(1) : 'Sélectionnez une section'}
+                {getDetailViewTitle()}
               </h2>
-                {activeSection && (
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation(); // ✅ Empêche le clic d’aller au parent
-                      handleAddClick(activeSection);
-                    }}
-                    className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                    title={`Ajouter ${activeSection === 'zones' ? 'Zone' : activeSection === 'halls' ? 'Hall' : 'Place'}`}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </button>
-                )}
-
+              {shouldShowAddButton() && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddClick(getAddButtonSection());
+                  }}
+                  className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                  title={`Ajouter ${getAddButtonSection() === 'zones' ? 'Zone' : getAddButtonSection() === 'halls' ? 'Hall' : 'Place'}`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              )}
             </div>
 
-            {/* Contenu basé sur la section active */}
-            {activeSection === 'zones' && (
-              <div className="space-y-3">
-                {marchee.zones?.length > 0 ? (
-                  marchee.zones.map((zone) => (
-                    <div key={zone.id} className="bg-gray-50 p-4 rounded-lg border">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-semibold text-lg mb-1">{zone.nom}</h3>
-                          <div className="text-sm text-blue-600 space-x-4">
-                            <span>halls: {zone.halls?.length || 0}</span>
-                            <span>places: {zone.places?.length || 0}</span>
-                          </div>
-                          <p className="text-gray-600 text-sm mt-2">
-                            Description: {zone.description || "Aucune description"}
-                          </p>
-                        </div>
-                        <Link
-                          href={`/dashboard/directeur/zones/${zone.id}`}
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                        >
-                          Voir détails →
-                        </Link>
-                      </div>
-                    </div>
-                  ))
+            {/* Contenu basé sur le niveau de vue */}
+            {viewLevel === 'zone-detail' && selectedZone ? (
+              <ZoneDetailView
+                zone={selectedZone}
+                marketName={marchee.nom}
+                onAddHall={() => setShowHallModal(true)}
+                onAddPlace={() => setShowPlaceModal(true)}
+                onHallClick={handleHallClick}
+                onBackToZones={handleBackToSections}
+              />
+            ) : viewLevel === 'hall-detail' && selectedHall ? (
+              <HallDetailView
+                hall={selectedHall}
+                marketName={marchee.nom}
+                onAddPlace={() => setShowPlaceModal(true)}
+                onBackToHalls={handleBackToSections}
+                onBackToZone={selectedHall.zoneName ? handleBackToZone : undefined}
+                showZoneInBreadcrumb={!!selectedHall.zoneName}
+              />
+            ) : viewLevel === 'sections' && activeSection ? (
+              <>
+                {activeSection === 'places' ? (
+                  <PlacesTable
+                    places={marchee.places || []}
+                    onCreatePlace={() => setShowPlaceModal(true)}
+                  />
                 ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 mb-4">Aucune zone disponible</p>
-                    <button
-                      onClick={() => setShowZoneModal(true)}
-                      className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md"
-                    >
-                      Créer la première zone
-                    </button>
-                  </div>
+                  <SectionsListView
+                    activeSection={activeSection}
+                    zones={activeSection === 'zones' ? marchee.zones : undefined}
+                    halls={activeSection === 'halls' ? marchee.halls : undefined}
+                    onZoneClick={handleZoneClick}
+                    onHallClick={handleHallClick}
+                    onCreateZone={() => setShowZoneModal(true)}
+                    onCreateHall={() => setShowHallModal(true)}
+                  />
                 )}
-              </div>
-            )}
-
-            {activeSection === 'halls' && (
-              <div className="space-y-3">
-                {marchee.halls?.length > 0 ? (
-                  marchee.halls.map((hall) => (
-                    <div key={hall.id} className="bg-gray-50 p-4 rounded-lg border">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-semibold text-lg mb-1">{hall.nom} {hall.description}</h3>
-                          <div className="text-sm text-blue-600">
-                            <span>places: {hall.places?.length || 0}</span>
-                          </div>
-                        </div>
-                        <Link
-                          href={`/dashboard/directeur/halls/${hall.id}`}
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                        >
-                          Voir détails →
-                        </Link>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 mb-4">Aucun hall disponible</p>
-                    <button
-                      onClick={() => setShowHallModal(true)}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md"
-                    >
-                      Créer le premier hall
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeSection === 'places' && (
-              <div>
-                {marchee.places?.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="border-b bg-gray-50">
-                          <th className="text-left p-3 font-semibold">ID</th>
-                          <th className="text-left p-3 font-semibold">Nom</th>
-                          <th className="text-left p-3 font-semibold">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {marchee.places.map((place) => (
-                          <tr key={place.id} className="border-b hover:bg-gray-50">
-                            <td className="p-3">{place.id}</td>
-                            <td className="p-3">{place.nom}</td>
-                            <td className="p-3">
-                              <Link
-                                href={`/dashboard/directeur/places/${place.id}`}
-                                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                              >
-                                Voir détails →
-                              </Link>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 mb-4">Aucune place disponible</p>
-                    <button
-                      onClick={() => setShowPlaceModal(true)}
-                      className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md"
-                    >
-                      Créer la première place
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {!activeSection && (
+              </>
+            ) : (
               <div className="text-center py-16">
                 <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -434,16 +421,15 @@ const MarcheeDetailsPage: React.FC = () => {
       />
 
       <AddPlaceModal
-        isOpen={showPlaceModal}
-        onClose={() => setShowPlaceModal(false)}
-        marcheeId={marchee.id}
-        zones={marchee.zones || []}
-        halls={marchee.halls || []}
-        onSuccess={() => {
-          setShowPlaceModal(false);
-          onModalSuccess();
-        }}
-      />
+          isOpen={showPlaceModal}
+          onClose={() => setShowPlaceModal(false)}
+          contextType="marchee"
+          contextId={marchee.id}
+          onSuccess={() => {
+            setShowPlaceModal(false);
+            onModalSuccess();
+          }}
+        />
     </div>
   );
 };
