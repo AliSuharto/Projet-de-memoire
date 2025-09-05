@@ -69,7 +69,8 @@ const Modal: React.FC<ExtendedModalProps> = ({
       onClick={handleBackdropClick}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm" />
+      
+      <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm modal-overlay" />
       
       {/* Modal */}
       <div 

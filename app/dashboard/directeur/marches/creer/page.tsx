@@ -27,7 +27,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-overlay ">
       <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
         <div className="flex items-center mb-4">
           <AlertCircle className={`mr-3 ${variant === 'save' ? 'text-green-500' : 'text-red-500'}`} size={24} />
@@ -66,46 +66,57 @@ interface MarketFormProps {
 const MarketForm: React.FC<MarketFormProps> = ({ market, onChange }) => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">Informations du Marché</h2>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nom du marché *
-          </label>
-          <input
-            type="text"
-            value={market.nom}
-            onChange={(e) => onChange({ ...market, nom: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Entrez le nom du marché"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Adresse *
-          </label>
-          <input
-            type="text"
-            value={market.adresse}
-            onChange={(e) => onChange({ ...market, adresse: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Entrez l'adresse du marché"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description
-          </label>
-          <textarea
-            value={market.description}
-            onChange={(e) => onChange({ ...market, description: e.target.value })}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Description du marché (optionnel)"
-          />
-        </div>
+  <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-3">
+    Informations du Marché
+  </h2>
+
+  <div className="space-y-6">
+    {/* Ligne pour Nom et Adresse */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Nom du marché */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Nom du marché <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={market.nom}
+          onChange={(e) => onChange({ ...market, nom: e.target.value })}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Ex: Marché Central"
+        />
+      </div>
+
+      {/* Adresse */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Adresse <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={market.adresse}
+          onChange={(e) => onChange({ ...market, adresse: e.target.value })}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Ex: Rue principale, Ville"
+        />
       </div>
     </div>
+
+    {/* Description */}
+    <div>
+      <label className="block text-sm font-semibold text-gray-700 mb-2">
+        Description
+      </label>
+      <textarea
+        value={market.description}
+        onChange={(e) => onChange({ ...market, description: e.target.value })}
+        rows={4}
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        placeholder="Décrivez le marché (optionnel)"
+      />
+    </div>
+  </div>
+</div>
   );
 };
 // Main Market Manager Component
@@ -338,44 +349,63 @@ Places: ${totalPlaces}`;
   return (
   <div className="min-h-screen bg-gray-100 p-4">
     <div className="max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8">Création de Marchés</h1>
+      <h1 className="text-2xl font-bold text-gray-500 mb-8">Créer un Marché</h1>
 
       <MarketForm market={market} onChange={handleMarketChange} />
 
       {/* Conteneur flex pour les trois sections */}
-      <div className="flex items-center justify-start gap-6 mt-6">
-        {/* ZoneSection */}
-        <div className="flex-1">
-          <ZoneSection
-            zones={market.zones}
-            onAddZone={handleAddZone}
-            onUpdateZone={handleUpdateZone}
-            onDeleteZone={handleDeleteZone}
-          />
-        </div>
+             <div className="flex flex-col space-y-6 mt-6">
+  {/* ZoneSection */}
+  <div className="bg-white shadow-md rounded-xl p-6 flex flex-col hover:shadow-lg transition-shadow duration-300">
+    <h2 className="text-xl font-bold text-blue-700 mb-4 border-b-2 border-blue-200 pb-2">
+      Zones
+    </h2>
+    <div className="flex-1">
+      <ZoneSection
+        zones={market.zones}
+        onAddZone={handleAddZone}
+        onUpdateZone={handleUpdateZone}
+        onDeleteZone={handleDeleteZone}
+      />
+    </div>
+  </div>
 
-        {/* HallSection */}
-        <div className="flex-1">
-          <HallSection
-            halls={market.halls}
-            onAddHall={handleAddHall}
-            onUpdateHall={handleUpdateHall}
-            onDeleteHall={(index) => handleDeleteHall(index, 'market')}
-            level="market"
-          />
-        </div>
+  {/* HallSection */}
+  <div className="bg-white shadow-md rounded-xl p-6 flex flex-col hover:shadow-lg transition-shadow duration-300">
+    <h2 className="text-xl font-bold text-green-700 mb-4 border-b-2 border-green-200 pb-2">
+      Halls
+    </h2>
+    <div className="flex-1">
+      <HallSection
+        halls={market.halls}
+        onAddHall={handleAddHall}
+        onUpdateHall={handleUpdateHall}
+        onDeleteHall={(index) => handleDeleteHall(index, 'market')}
+        level="market"
+      />
+    </div>
+  </div>
 
-        {/* PlaceSection */}
-        <div className="flex-1">
-          <PlaceSection
-            places={market.places}
-            onAddPlace={handleAddPlace}
-            onUpdatePlace={handleUpdatePlace}
-            onDeletePlace={(index) => handleDeletePlace(index, 'market')}
-            level="market"
-          />
-        </div>
-      </div>
+  {/* PlaceSection */}
+  <div className="bg-white shadow-md rounded-xl p-6 flex flex-col hover:shadow-lg transition-shadow duration-300">
+    <h2 className="text-xl font-bold text-purple-700 mb-4 border-b-2 border-purple-200 pb-2">
+      Places
+    </h2>
+    <div className="flex-1">
+      <PlaceSection
+        places={market.places}
+        onAddPlace={handleAddPlace}
+        onUpdatePlace={handleUpdatePlace}
+        onDeletePlace={(index) => handleDeletePlace(index, 'market')}
+        level="market"
+      />
+    </div>
+  </div>
+</div>
+
+
+
+
 
       {/* Boutons d'action */}
       <div className="flex justify-end space-x-4 mt-8">

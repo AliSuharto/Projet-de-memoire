@@ -1,7 +1,6 @@
 'use client'
 
 import axios from 'axios'
-import { jwtDecode } from 'jwt-decode'
 import { useState } from 'react'
 
 // Types TypeScript
@@ -13,13 +12,6 @@ interface RecuPlageRequest {
   multiplicateur?: number
 }
 
-interface JwtPayload {
-  id: number
-  sub: string // email ou username
-  exp: number
-  iat: number
-}
-
 interface RecuPlageResponse {
   plageId: number
   numerosGeneres: string[]
@@ -28,21 +20,9 @@ interface RecuPlageResponse {
 }
 
 export default function AjouterRecu() {
-
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-let percepteurIdFromToken = 0
-
-if (token) {
-  try {
-    const decoded = jwtDecode<JwtPayload>(token)
-    percepteurIdFromToken = decoded.id
-  } catch (error) {
-    console.error('Erreur de décodage du token:', error)
-  }
-}
   // États du formulaire
   const [formData, setFormData] = useState<RecuPlageRequest>({
-    percepteurId: percepteurIdFromToken ,
+    percepteurId: 1,
     debut: '',
     fin: '',
     type: 'NUMERIC',

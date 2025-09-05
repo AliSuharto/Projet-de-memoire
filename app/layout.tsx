@@ -7,8 +7,11 @@ import { ToastProvider } from '@/components/ui/ToastContainer'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'e-GMC - Gestion de Marchés Communaux',
+  title: 'e-GMC',
   description: 'Plateforme de gestion des marchés communaux',
+  icons: {
+    icon: '/favicon.png',
+  },
 }
 
 export default function RootLayout({

@@ -10,7 +10,9 @@ import {
   BookOpen,
   UserCheck,
   Calendar,
-  CreditCard
+  CreditCard,
+  Receipt,
+  Tags
 } from 'lucide-react';
 import { SideNavItem, TopNavItem } from '@/types/navigation';
 
@@ -188,38 +190,38 @@ export const NAVIGATION_CONFIG = {
     }
   ] as UnifiedNavItem[],
 
-  REGISSEUR: [
-    {
-      href: "/dashboard/regisseur",
-      icon: Home,
-      label: "Accueil"
-    },
-    {
-      href: "/dashboard/regisseur/marchee",
-      icon: ShoppingCart,
-      label: "Marchés"
-    },
-    {
-      href: "/dashboard/regisseur/marchands",
-      icon: Users,
-      label: "Marchands"
-    },
-    {
-      href: "/dashboard/regisseur/endettes",
-      icon: Database,
-      label: "Marchands endettés"
-    },
-    {
-      href: "/dashboard/regisseur/rapports",
-      icon: FileText,
-      label: "Rapports financiers"
-    },
-    {
-      href: "/dashboard/regisseur/parametres",
-      icon: Settings,
-      label: "Paramètres"
-    }
-  ] as UnifiedNavItem[],
+  // REGISSEUR: [
+  //   {
+  //     href: "/dashboard/regisseur",
+  //     icon: Home,
+  //     label: "Accueil"
+  //   },
+  //   {
+  //     href: "/dashboard/regisseur/marchee",
+  //     icon: ShoppingCart,
+  //     label: "Marchés"
+  //   },
+  //   {
+  //     href: "/dashboard/regisseur/marchands",
+  //     icon: Users,
+  //     label: "Marchands"
+  //   },
+  //   {
+  //     href: "/dashboard/regisseur/endettes",
+  //     icon: Database,
+  //     label: "Marchands endettés"
+  //   },
+  //   {
+  //     href: "/dashboard/regisseur/rapports",
+  //     icon: FileText,
+  //     label: "Rapports financiers"
+  //   },
+  //   {
+  //     href: "/dashboard/regisseur/parametres",
+  //     icon: Settings,
+  //     label: "Paramètres"
+  //   }
+  // ] as UnifiedNavItem[],
 
   // Nouveaux rôles
   ORDONNATEUR: [
@@ -292,7 +294,7 @@ export const NAVIGATION_CONFIG = {
     {
       href: "/dashboard/directeur/marches",
       icon: ShoppingCart,
-      label: "Gestion des marchés",
+      label: "Marchés",
       subItems: [
         { 
           href: "/dashboard/directeur/marches/creer", 
@@ -314,7 +316,7 @@ export const NAVIGATION_CONFIG = {
     {
       href: "/dashboard/directeur/utilisateurs",
       icon: Users,
-      label: "Gestion des utilisateurs",
+      label: "Utilisateurs",
       subItems: [
         { 
           href: "/dashboard/directeur/utilisateurs/liste", 
@@ -342,15 +344,10 @@ export const NAVIGATION_CONFIG = {
           icon: Users,
           description: "Voir tous les marchands"
         },
-        { 
-          href: "/dashboard/directeur/marchand/creer", 
-          label: "Ajouter un marchands",
-          icon: UserCheck,
-          description: "Creer nouveau compte"
-        },
+
          { 
           href: "/dashboard/directeur/marchand/creer_multiple", 
-          label: "Ajouter multiple de marchands",
+          label: " Ajouter marchands",
           icon: UserCheck,
           description: "Ajouter plusieurs marchands en une fois"
         }
@@ -371,7 +368,13 @@ export const NAVIGATION_CONFIG = {
       href: "/dashboard/directeur/rapports",
       icon: FileText,
       label: "Rapports"
-    }
+    },
+
+    {
+      href: "/dashboard/directeur/tarif",
+      icon: Tags,
+      label: "Tarifs"
+    },
   ] as UnifiedNavItem[],
 
 
@@ -398,7 +401,7 @@ REGISSEUR_PRINCIPAL: [
     },
     {
       href: "/dashboard/percepteur/recu",
-      icon: FileText,
+      icon: Receipt,
       label: "Reçus"
     },
     {
@@ -413,7 +416,7 @@ REGISSEUR_PRINCIPAL: [
           description: "Ajouter un nouveau marché"
         },
         { 
-          href: "/dashboard/directeur/marches/listeMarches", 
+          href: "/dashboard/directeur/marches/liste", 
           label: "Liste des marchés",
           icon: BookOpen,
           description: "Gérer les marchés existants"
@@ -457,7 +460,56 @@ REGISSEUR_PRINCIPAL: [
       label: "Paramètres"
     }
   ] as UnifiedNavItem[]
+  ,
+
+REGISSEUR: [
+    {
+      href: "/dashboard/regisseur",
+      icon: Home,
+      label: "Accueil"
+    },
+    {
+      href: "/dashboard/regisseur/marchands",
+      icon: Users,
+      label: "Marchands"
+    },
+    {
+      href: "/dashboard/regisseur/marches",
+      icon: ShoppingCart,
+      label: "Marchés"
+    },
+    {
+      href: "/dashboard/regisseur/paiements",
+      icon: CreditCard,
+      label: "Paiements"
+    },
+    {
+      href: "/dashboard/regisseur/recu",
+      icon: FileText,
+      label: "Reçus"
+    },
+    {
+      href: "/dashboard/regisseur/parametres",
+      icon: Settings,
+      label: "Paramètres"
+    },
+    {
+      href: "/dashboard/regisseur/recu",
+      icon: FileText,
+      label: "Recus"
+    }
+  ] as UnifiedNavItem[]
 };
+
+
+
+
+
+
+
+
+
+
 
 // Fonction utilitaire pour obtenir la configuration de navigation par rôle
 export function getNavigationConfig(role: string): UnifiedNavItem[] {

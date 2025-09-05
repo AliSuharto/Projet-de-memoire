@@ -1,48 +1,50 @@
-'use client'
+'use client';
 
-import axios from 'axios'
-import { jwtDecode } from 'jwt-decode'
-import { useState } from 'react'
+import React, { useState } from "react"
+import axios from "axios"
+import { jwtDecode } from "jwt-decode"
 
-// Types TypeScript
+// Types pour le payload du token
+interface JwtPayload {
+  id: number
+  exp?: number
+  iat?: number
+}
+
+// Types pour ton formulaire
 interface RecuPlageRequest {
   percepteurId: number
   debut: string
   fin: string
-  type: 'NUMERIC' | 'ALPHANUMERIC'
+  type: "NUMERIC" | "ALPHANUMERIC"
   multiplicateur?: number
 }
 
-interface JwtPayload {
-  id: number
-  sub: string // email ou username
-  exp: number
-  iat: number
+// Réponse API
+interface RecuPlageResponse {
+  message: string
+  totalGeneres: number
+  numerosGeneres: string[]
 }
 
-interface RecuPlageResponse {
-  plageId: number
-  numerosGeneres: string[]
-  totalGeneres: number
-  message: string
-}
+
 
 export default function AjouterRecu() {
-
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-let percepteurIdFromToken = 0
+  let percepteurIdFromToken = 0
 
-if (token) {
-  try {
-    const decoded = jwtDecode<JwtPayload>(token)
-    percepteurIdFromToken = decoded.id
-  } catch (error) {
-    console.error('Erreur de décodage du token:', error)
+  if (token) {
+    try {
+      const decoded = jwtDecode<JwtPayload>(token)
+      percepteurIdFromToken = decoded.id
+    } catch (error) {
+      console.error('Erreur de décodage du token:', error)
+    }
   }
-}
+
   // États du formulaire
   const [formData, setFormData] = useState<RecuPlageRequest>({
-    percepteurId: percepteurIdFromToken ,
+    percepteurId: percepteurIdFromToken,
     debut: '',
     fin: '',
     type: 'NUMERIC',
@@ -61,7 +63,7 @@ if (token) {
   const itemsPerPage = 50
   const totalPages = Math.ceil(previewNumeros.length / itemsPerPage)
 
-  // Configuration API simulée (remplacez par votre vraie API)
+  // Configuration API simulée
   const API_BASE_URL = 'http://localhost:8080/api'
 
   // Validation du formulaire
@@ -116,7 +118,6 @@ if (token) {
         }
       }
       
-      // Appliquer le multiplicateur
       if (data.multiplicateur && data.multiplicateur > 0) {
         const numerosAvecMultiplicateur: string[] = []
         for (const numeroBase of numeros) {
@@ -151,53 +152,51 @@ if (token) {
     setCurrentPage(1)
   }
 
-  // Enregistrer la plage (simulation API)
+  // Enregistrer la plage
   const handleEnregistrer = async () => {
-  setError('')
-  setSuccess('')
-  setIsLoading(true)
+    setError('')
+    setSuccess('')
+    setIsLoading(true)
 
-  const validationError = validateForm()
-  if (validationError) {
-    setError(validationError)
-    setIsLoading(false)
-    return
+    const validationError = validateForm()
+    if (validationError) {
+      setError(validationError)
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      const response = await axios.post<RecuPlageResponse>(
+        `${API_BASE_URL}/recu-plage`,
+        formData,
+        { headers: { 'Content-Type': 'application/json' } }
+      )
+
+      const data = response.data
+      setSuccess(data.message || `Plage créée avec succès! ${data.totalGeneres} reçus générés.`)
+      setPreviewNumeros(data.numerosGeneres)
+      setShowPreview(true)
+
+      setTimeout(() => {
+        setFormData({
+          percepteurId: formData.percepteurId,
+          debut: '',
+          fin: '',
+          type: 'NUMERIC',
+          multiplicateur: undefined
+        })
+        setShowPreview(false)
+        setPreviewNumeros([])
+        setSuccess('')
+      }, 3000)
+
+    } catch (err: any) {
+      console.error('Erreur:', err)
+      setError(err.response?.data?.message || 'Erreur lors de l\'enregistrement')
+    } finally {
+      setIsLoading(false)
+    }
   }
-  console.log('Envoi des données:', formData);
-
-  try {
-    const response = await axios.post<RecuPlageResponse>(
-      `${API_BASE_URL}/recu-plage`,
-      formData,
-      { headers: { 'Content-Type': 'application/json' } }
-    )
-
-    const data = response.data
-    setSuccess(data.message || `Plage créée avec succès! ${data.totalGeneres} reçus générés.`)
-    setPreviewNumeros(data.numerosGeneres)
-    setShowPreview(true)
-
-    // Réinitialiser le formulaire après succès
-    setTimeout(() => {
-      setFormData({
-        percepteurId: formData.percepteurId,
-        debut: '',
-        fin: '',
-        type: 'NUMERIC',
-        multiplicateur: undefined
-      })
-      setShowPreview(false)
-      setPreviewNumeros([])
-      setSuccess('')
-    }, 3000)
-
-  } catch (err: any) {
-    console.error('Erreur:', err)
-    setError(err.response?.data?.message || 'Erreur lors de l\'enregistrement')
-  } finally {
-    setIsLoading(false)
-  }
-}
 
   // Télécharger en CSV
   const handleDownloadCSV = () => {
@@ -223,24 +222,24 @@ if (token) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-0 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto">
         {/* En-tête */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Ajouter une Plage de Reçus
+        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 border border-gray-100">
+          <h1 className="text-3xl font-bold text-gray-900 mb-1 tracking-tight">
+            Ajouter des Reçus
           </h1>
-          <p className="text-gray-600">
-            Générez automatiquement une série de numéros de reçus selon vos paramètres
+          <p className="text-gray-500 text-lg">
+            Créez et gérez facilement vos séries de numéros de reçus
           </p>
         </div>
 
         {/* Formulaire */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 border border-gray-100">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Début */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
                 Début du numéro *
               </label>
               <input
@@ -248,13 +247,13 @@ if (token) {
                 value={formData.debut}
                 onChange={(e) => setFormData({...formData, debut: e.target.value})}
                 placeholder={formData.type === 'NUMERIC' ? '120' : '45601A'}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 placeholder-gray-400"
               />
             </div>
 
             {/* Fin */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
                 Fin du numéro *
               </label>
               <input
@@ -262,19 +261,19 @@ if (token) {
                 value={formData.fin}
                 onChange={(e) => setFormData({...formData, fin: e.target.value})}
                 placeholder={formData.type === 'NUMERIC' ? '170' : '45601Z'}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 placeholder-gray-400"
               />
             </div>
 
             {/* Type de reçu */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
                 Type de reçu *
               </label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({...formData, type: e.target.value as 'NUMERIC' | 'ALPHANUMERIC'})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
               >
                 <option value="NUMERIC">Numérique (ex: 120, 121, 122...)</option>
                 <option value="ALPHANUMERIC">Alphanumérique (ex: 45601A, 45601B...)</option>
@@ -282,8 +281,8 @@ if (token) {
             </div>
 
             {/* Multiplicateur */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
                 Multiplicateur (optionnel)
               </label>
               <input
@@ -292,73 +291,70 @@ if (token) {
                 value={formData.multiplicateur || ''}
                 onChange={(e) => setFormData({...formData, multiplicateur: e.target.value ? parseInt(e.target.value) : undefined})}
                 placeholder="Ex: 5 pour générer 120A, 120B, 120C..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 placeholder-gray-400"
               />
-              <p className="text-sm text-gray-500 mt-1">
-                Génère des sous-numéros avec des suffixes A, B, C...
+              <p className="text-sm text-gray-500">
+                Ajoute des suffixes (A, B, C...) à chaque numéro
               </p>
             </div>
           </div>
 
           {/* Messages d'erreur et succès */}
           {error && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-red-800">{error}</p>
-                </div>
-              </div>
+            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
+              <svg className="h-5 w-5 text-red-500 mr-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
 
           {success && (
-            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-green-800">{success}</p>
-                </div>
-              </div>
+            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
+              <svg className="h-5 w-5 text-green-500 mr-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <p className="text-sm text-green-700">{success}</p>
             </div>
           )}
 
           {/* Boutons d'action */}
-          <div className="flex gap-4 mt-6">
+          <div className="flex flex-col sm:flex-row gap-4 mt-8">
             <button
               onClick={handlePrevisualiser}
-              className="flex-1 px-6 py-3 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+              className="flex-1 px-6 py-3 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center gap-2"
             >
-              📋 Prévisualiser
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              Prévisualiser
             </button>
             
             <button
               onClick={handleEnregistrer}
               disabled={isLoading}
-              className={`flex-1 px-6 py-3 font-medium rounded-lg transition-colors focus:ring-2 focus:ring-offset-2 ${
+              className={`flex-1 px-6 py-3 font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
                 isLoading
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
               }`}
             >
               {isLoading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24">
+                <>
+                  <svg className="animate-spin h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   Enregistrement...
-                </span>
+                </>
               ) : (
-                '💾 Enregistrer'
+                <>
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                  Enregistrer
+                </>
               )}
             </button>
           </div>
@@ -366,38 +362,41 @@ if (token) {
 
         {/* Section d'aperçu */}
         {showPreview && previewNumeros.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
+          <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">
                 Aperçu des Numéros Générés
               </h2>
               <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-500 font-medium">
                   Total: {previewNumeros.length} numéros
                 </span>
                 <button
                   onClick={handleDownloadCSV}
-                  className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+                  className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 flex items-center gap-2"
                 >
-                  📥 Télécharger CSV
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Télécharger CSV
                 </button>
               </div>
             </div>
 
             {/* Tableau des numéros */}
             <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-                <h3 className="text-sm font-medium text-gray-700">
+              <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                <h3 className="text-sm font-semibold text-gray-700">
                   Page {currentPage} sur {totalPages}
                 </h3>
               </div>
               
-              <div className="p-4">
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+              <div className="p-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
                   {getCurrentPageNumeros().map((numero, index) => (
                     <div
                       key={index}
-                      className="px-3 py-2 bg-blue-50 border border-blue-200 rounded text-center text-sm font-mono"
+                      className="px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-center text-sm font-mono text-indigo-800 shadow-sm hover:shadow-md transition-all duration-200"
                     >
                       {numero}
                     </div>
@@ -408,14 +407,14 @@ if (token) {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center justify-between mt-6">
                 <button
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none ${
                     currentPage === 1
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500'
                   }`}
                 >
                   ← Précédent
@@ -438,10 +437,10 @@ if (token) {
                       <button
                         key={pageNum}
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        className={`px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none ${
                           currentPage === pageNum
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500'
                         }`}
                       >
                         {pageNum}
@@ -453,10 +452,10 @@ if (token) {
                 <button
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none ${
                     currentPage === totalPages
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500'
                   }`}
                 >
                   Suivant →
@@ -467,21 +466,21 @@ if (token) {
         )}
 
         {/* Information d'aide */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+        <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 mt-8">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-6 w-6 text-indigo-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-blue-800">Guide d'utilisation</h3>
-              <div className="mt-2 text-sm text-blue-700">
-                <ul className="list-disc list-inside space-y-1">
-                  <li><strong>Numérique:</strong> Entrez des nombres entiers (ex: début=120, fin=170)</li>
-                  <li><strong>Alphanumérique:</strong> Format base + lettre (ex: début=45601A, fin=45601Z)</li>
-                  <li><strong>Multiplicateur:</strong> Crée des sous-numéros avec suffixes A, B, C... pour chaque numéro de base</li>
-                  <li><strong>Prévisualiser:</strong> Vérifiez les numéros avant l'enregistrement définitif</li>
+              <h3 className="text-base font-semibold text-indigo-800">Guide d'utilisation</h3>
+              <div className="mt-2 text-sm text-indigo-700">
+                <ul className="list-disc list-inside space-y-2">
+                  <li><strong>Numérique :</strong> Saisissez des nombres entiers (ex: début=120, fin=170)</li>
+                  <li><strong>Alphanumérique :</strong> Utilisez un format base + lettre (ex: début=45601A, fin=45601Z)</li>
+                  <li><strong>Multiplicateur :</strong> Ajoute des suffixes (A, B, C...) pour chaque numéro de base</li>
+                  <li><strong>Prévisualiser :</strong> Vérifiez vos numéros avant de les enregistrer</li>
                 </ul>
               </div>
             </div>

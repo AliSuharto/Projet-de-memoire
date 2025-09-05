@@ -65,13 +65,15 @@ const HallSection: React.FC<HallSectionProps> = ({
       {halls.map((hall, hallIndex) => (
         <div key={hall.id} className={`${bgColor} p-4 rounded-lg mb-4 ${borderColor} border`}>
           
-          <h4 className={`font-medium ${textColor} mb-3`}>Hall</h4>
-          <button
-                onClick={() => onDeleteHall(hallIndex)}
-                className="text-red-600 hover:text-red-800"
+                    <div className="flex justify-between items-center mb-3">
+            <h4 className={`font-medium ${textColor}`}>Hall</h4>
+            <button
+              onClick={() => onDeleteHall(hallIndex)}
+              className="text-red-600 hover:text-red-800"
             >
-                <X size={18} />
+              <X size={18} />
             </button>
+          </div>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

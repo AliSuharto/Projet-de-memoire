@@ -41,8 +41,10 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-2xl">
+     <div className="fixed inset-0 z-50 flex items-center justify-center">
+  <div 
+    className="absolute inset-0 modal-overlay"
+>
         <h3 className="text-xl font-bold text-gray-800 mb-4">
           Confirmer la création
         </h3>
@@ -144,7 +146,7 @@ const CreateUserPage: React.FC = () => {
   const isFormValid = formData.nom && formData.email && formData.role && formData.motDePasse;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-white-50 to-gray-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">

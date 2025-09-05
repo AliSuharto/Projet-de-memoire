@@ -3,8 +3,8 @@ import { Markets, Zones, Halls, Places, EntityType } from '@/types/marcheeCreati
 class MarketService {
   private baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
-  async getMarketById(id: string): Promise<Markets> {
-    const response = await fetch(`${this.baseUrl}/marchees/${id}`);
+  async getMarketById(marketId: string): Promise<Markets> {
+    const response = await fetch(`${this.baseUrl}/marchees/${marketId}`);
     if (!response.ok) {
       throw new Error('Erreur lors de la récupération du marché');
     }

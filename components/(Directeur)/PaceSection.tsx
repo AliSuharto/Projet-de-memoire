@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Plus,X} from 'lucide-react';
-
+import {Place} from '@/types/marcheeCreation';
 
 // Place Section Component
 
@@ -75,13 +75,16 @@ const PlaceSection: React.FC<PlaceSectionProps> = ({
       
       {places.map((place, index) => (
         <div key={place.id} className={`${bgColor} p-4 rounded-lg mb-3 ${borderColor} border`}>
-          <h5 className={`font-medium ${textColor} mb-3`}>Place</h5>
-          <button
-            onClick={() => onDeletePlace(index)}
-            className="text-red-600 hover:text-red-800"
-          >
-            <X size={16} />
-        </button>
+          
+              <div className="flex justify-between items-center mb-3">
+              <h5 className={`font-medium ${textColor} mb-3`}>Place</h5>
+              <button
+                onClick={() => onDeletePlace(index)}
+                className="text-red-600 hover:text-red-800"
+              >
+                <X size={16} />
+            </button>
+            </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

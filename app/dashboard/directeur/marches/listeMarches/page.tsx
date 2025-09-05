@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import DataTable from "@/components/ui/DataTable";
@@ -15,60 +15,108 @@ import { Market, TableColumn, TableAction } from "@/app/types/common";
 interface CreateMarketForm {
   nom: string;
   adresse: string;
-  nombreDePlace: string;
+  nbrPlace: string;
   description: string;
 }
 
 // =======================
-// Données simulées
+// Services API
 // =======================
-const SAMPLE_MARKETS: Market[] = [
-  { 
-    id: 1, 
-    nom: "Marché Central", 
-    adresse: "Place de la République", 
-    nombreDePlace: 150, 
-    tauxOccupation: 85,
-    statut: "Actif",
-    dateCreation: "2024-01-15"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const token = localStorage.getItem('token') ;
+const marketService = {
+  // Récupérer tous les marchés
+  getAll: async (): Promise<Market[]> => {
+    const response = await fetch(`${API_BASE_URL}/marchees`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        // Ajouter token d'auth si nécessaire
+        'Authorization': `Bearer ${token}`
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
+    
+    return await response.json();
   },
-  { 
-    id: 2, 
-    nom: "Marché de Fruits", 
-    adresse: "Avenue des Palmiers", 
-    nombreDePlace: 80, 
-    tauxOccupation: 92,
-    statut: "Actif",
-    dateCreation: "2024-02-20"
+
+  // Créer un nouveau marché
+  create: async (data: CreateMarketForm): Promise<Market> => {
+    const response = await fetch(`${API_BASE_URL}/marchees`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        nom: data.nom,
+        adresse: data.adresse,
+        nbrPlace: data.nbrPlace ? parseInt(data.nbrPlace) : null,
+        description: data.description || null,
+        
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
+    
+    return await response.json();
   },
-  { 
-    id: 3, 
-    nom: "Marché aux Poissons", 
-    adresse: "Port de pêche", 
-    nombreDePlace: 45, 
-    tauxOccupation: 78,
-    statut: "Maintenance",
-    dateCreation: "2024-03-10"
+
+  // Modifier un marché
+  update: async (id: number, data: Partial<Market>): Promise<Market> => {
+    const response = await fetch(`${API_BASE_URL}/marches/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        // 'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
+    
+    return await response.json();
   },
-  { 
-    id: 4, 
-    nom: "Marché des Légumes", 
-    adresse: "Zone agricole", 
-    nombreDePlace: 120, 
-    tauxOccupation: 95,
-    statut: "Actif",
-    dateCreation: "2024-04-05"
+
+  // Supprimer un marché
+  delete: async (id: number): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/marchees/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        // 'Authorization': `Bearer ${token}`
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
   },
-  { 
-    id: 5, 
-    nom: "Marché Artisanal", 
-    adresse: "Centre-ville", 
-    nombreDePlace: 60, 
-    tauxOccupation: 67,
-    statut: "Inactif",
-    dateCreation: "2024-05-12"
+
+  // Récupérer les détails d'un marché
+  getById: async (id: number): Promise<Market> => {
+    const response = await fetch(`${API_BASE_URL}/marchees/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        // 'Authorization': `Bearer ${token}`
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
+    
+    return await response.json();
   },
-];
+};
 
 // =======================
 // Configuration du tableau
@@ -106,12 +154,12 @@ const getTableColumns = (): TableColumn<Market>[] => [
     ),
   },
   {
-    key: 'nombreDePlace',
+    key: 'nbrPlace',
     header: 'Places',
     sortable: true,
     className: 'text-center',
     render: (market) => (
-      <span className="font-medium">{market.nombreDePlace}</span>
+      <span className="font-medium">{market.nbrPlace || 0}</span>
     ),
   },
   {
@@ -119,7 +167,7 @@ const getTableColumns = (): TableColumn<Market>[] => [
     header: 'Taux d\'occupation',
     sortable: true,
     className: 'text-center',
-    render: (market) => getOccupationBadge(market.tauxOccupation),
+    render: (market) => getOccupationBadge(market.tauxOccupation || 0),
   },
   {
     key: 'statut',
@@ -159,7 +207,11 @@ const getTableActions = (
 ];
 
 // Modal création marché
-const CreateMarketModal: React.FC<{ isOpen: boolean; onClose: () => void; onSubmit: (data: CreateMarketForm) => void }> = ({ 
+const CreateMarketModal: React.FC<{ 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onSubmit: (data: CreateMarketForm) => Promise<void>;
+}> = ({ 
   isOpen, 
   onClose, 
   onSubmit 
@@ -167,40 +219,56 @@ const CreateMarketModal: React.FC<{ isOpen: boolean; onClose: () => void; onSubm
   const [formData, setFormData] = useState<CreateMarketForm>({
     nom: "",
     adresse: "",
-    nombreDePlace: "",
+    nbrPlace: "",
     description: "",
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.nom.trim() || !formData.adresse.trim()) {
-      alert("Veuillez remplir le nom et l'adresse du marché");
+      setError("Veuillez remplir le nom et l'adresse du marché");
       return;
     }
 
     setLoading(true);
+    setError(null);
+    
     try {
       await onSubmit(formData);
-      setFormData({ nom: "", adresse: "", nombreDePlace: "", description: "" });
+      setFormData({ nom: "", adresse: "", nbrPlace: "", description: "" });
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de la création:", error);
+      setError(error.message || "Une erreur est survenue lors de la création");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleClose = () => {
+    setFormData({ nom: "", adresse: "", nbrPlace: "", description: "" });
+    setError(null);
+    onClose();
+  };
+
   return (
     <Modal 
       isOpen={isOpen} 
-      onClose={onClose}
+      onClose={handleClose}
       title="Créer un nouveau marché"
       size="md"
     >
       <form onSubmit={handleSubmit}>
         <ModalContent>
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+          
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -213,6 +281,7 @@ const CreateMarketModal: React.FC<{ isOpen: boolean; onClose: () => void; onSubm
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
                 placeholder="Entrez le nom du marché"
                 required
+                disabled={loading}
               />
             </div>
             
@@ -227,6 +296,7 @@ const CreateMarketModal: React.FC<{ isOpen: boolean; onClose: () => void; onSubm
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
                 placeholder="Entrez l'adresse du marché"
                 required
+                disabled={loading}
               />
             </div>
             
@@ -237,10 +307,11 @@ const CreateMarketModal: React.FC<{ isOpen: boolean; onClose: () => void; onSubm
               <input
                 type="number"
                 min="1"
-                value={formData.nombreDePlace}
-                onChange={(e) => setFormData({ ...formData, nombreDePlace: e.target.value })}
+                value={formData.nbrPlace}
+                onChange={(e) => setFormData({ ...formData, nbrPlace: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
                 placeholder="Entrez le nombre de places"
+                disabled={loading}
               />
             </div>
             
@@ -254,6 +325,7 @@ const CreateMarketModal: React.FC<{ isOpen: boolean; onClose: () => void; onSubm
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                 placeholder="Description du marché"
+                disabled={loading}
               />
             </div>
           </div>
@@ -264,8 +336,9 @@ const CreateMarketModal: React.FC<{ isOpen: boolean; onClose: () => void; onSubm
             <Button
               type="button"
               variant="secondary"
-              onClick={onClose}
+              onClick={handleClose}
               className="flex-1"
+              disabled={loading}
             >
               Annuler
             </Button>
@@ -273,6 +346,7 @@ const CreateMarketModal: React.FC<{ isOpen: boolean; onClose: () => void; onSubm
               type="submit"
               loading={loading}
               className="flex-1"
+              disabled={loading}
             >
               Créer le marché
             </Button>
@@ -288,49 +362,105 @@ const CreateMarketModal: React.FC<{ isOpen: boolean; onClose: () => void; onSubm
 // =======================
 const MarketsManagement: React.FC = () => {
   const router = useRouter();
-  const [markets, setMarkets] = useState<Market[]>(SAMPLE_MARKETS);
+  const [markets, setMarkets] = useState<Market[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Charger les marchés au montage du composant
+  useEffect(() => {
+    loadMarkets();
+  }, []);
+
+  const loadMarkets = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await marketService.getAll();
+      setMarkets(data);
+    } catch (error: any) {
+      console.error("Erreur lors du chargement des marchés:", error);
+      setError(error.message || "Impossible de charger les marchés");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Handlers
-  const handleViewDetails = (market: Market) => {
-    console.log("Voir les détails du marché:", market);
-    router.push(`/dashboard/prmc/marches/${market.id}`);
+  const handleViewDetails = async (market: Market) => {
+    try {
+      // Optionnel: récupérer les détails complets depuis le backend
+      // const detailedMarket = await marketService.getById(market.id);
+      console.log("Voir les détails du marché:", market);
+      router.push(`/dashboard/directeur/marches/${market.id}`);
+    } catch (error: any) {
+      console.error("Erreur lors de la récupération des détails:", error);
+      alert("Impossible d'accéder aux détails du marché");
+    }
   };
 
-  const handleEdit = (market: Market) => {
-    console.log("Modifier le marché:", market);
-    // TODO: Implémenter la modification
+  const handleEdit = async (market: Market) => {
+    try {
+      console.log("Modifier le marché:", market);
+      // Rediriger vers la page de modification
+      router.push(`/dashboard/directeur/marches/${market.id}/edit`);
+    } catch (error: any) {
+      console.error("Erreur lors de l'ouverture de la modification:", error);
+      alert("Impossible d'ouvrir la modification");
+    }
   };
 
-  const handleDelete = (market: Market) => {
+  const handleDelete = async (market: Market) => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer le marché "${market.nom}" ?`)) {
-      setMarkets(prev => prev.filter(m => m.id !== market.id));
+      try {
+        await marketService.delete(market.id);
+        setMarkets(prev => prev.filter(m => m.id !== market.id));
+        console.log("Marché supprimé:", market);
+      } catch (error: any) {
+        console.error("Erreur lors de la suppression:", error);
+        alert(error.message || "Impossible de supprimer le marché");
+      }
     }
   };
 
   const handleCreateMarket = async (formData: CreateMarketForm) => {
-    // Simulation d'un appel API
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const newMarket: Market = {
-      id: Math.max(...markets.map(m => m.id)) + 1,
-      nom: formData.nom,
-      adresse: formData.adresse,
-      nombreDePlace: parseInt(formData.nombreDePlace) || 0,
-      tauxOccupation: 0,
-      statut: "Actif",
-      dateCreation: new Date().toISOString().split('T')[0],
-      description: formData.description,
-    };
-    
-    setMarkets(prev => [...prev, newMarket]);
-    console.log("Marché créé:", newMarket);
+    try {
+      const newMarket = await marketService.create(formData);
+      setMarkets(prev => [...prev, newMarket]);
+      console.log("Marché créé:", newMarket);
+    } catch (error: any) {
+      console.error("Erreur lors de la création:", error);
+      throw error; // Re-throw pour que le modal puisse afficher l'erreur
+    }
   };
 
   // Configuration du tableau
   const tableColumns = getTableColumns();
   const tableActions = getTableActions(handleViewDetails, handleEdit, handleDelete);
+
+  // Affichage d'erreur
+  if (error && !loading && markets.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 inline-block">
+              <h3 className="text-lg font-medium text-red-800 mb-2">
+                Erreur de chargement
+              </h3>
+              <p className="text-red-600 mb-4">{error}</p>
+              <Button
+                onClick={loadMarkets}
+                variant="secondary"
+              >
+                Réessayer
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -343,14 +473,32 @@ const MarketsManagement: React.FC = () => {
               Gérez les marchés communaux et leurs informations
             </p>
           </div>
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            icon={Plus}
-            className="shadow-sm"
-          >
-            Créer un marché
-          </Button>
+          <div className="flex space-x-3">
+            <Button
+              onClick={loadMarkets}
+              variant="secondary"
+              loading={loading}
+            >
+              Actualiser
+            </Button>
+            <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              icon={Plus}
+              className="shadow-sm"
+            >
+              Créer un marché
+            </Button>
+          </div>
         </div>
+
+        {/* Message d'erreur (si pas bloquant) */}
+        {error && markets.length > 0 && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-sm text-yellow-600">
+              Attention: {error}
+            </p>
+          </div>
+        )}
 
         {/* Tableau des marchés */}
         <DataTable

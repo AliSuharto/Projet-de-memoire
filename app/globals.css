@@ -23,6 +23,15 @@ body {
       rgb(var(--background-end-rgb))
     rgb(var(--background-start-rgb)));
 }
+
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(2px);
+}
+
+
+
+
 /* .main-content {
   @apply md:ml-64;
 } */
