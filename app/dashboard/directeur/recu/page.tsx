@@ -142,7 +142,7 @@ Numéro de reçu: ${dernierPaiement.numeroRecu}
 Date: ${new Date(dernierPaiement.datePaiement).toLocaleDateString('fr-FR')}
 
 Reçu de: ${dernierPaiement.nomPayeur}
-Montant: ${dernierPaiement.montant.toFixed(2)} €
+Montant: ${dernierPaiement.montant.toFixed(2)} Ar
 Mode de paiement: ${dernierPaiement.modePaiement}
 
 Percepteur ID: ${formData.percepteurId}

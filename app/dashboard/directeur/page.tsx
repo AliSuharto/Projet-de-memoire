@@ -14,20 +14,20 @@ export default function DirecteurDashboard() {
     },
     {
       title: 'Utilisateurs actifs',
-      value: '89',
+      value: '10',
       change: '+8.1%',
       changeType: 'positive' as const,
       icon: Users,
     },
     {
-      title: 'Permissions gérées',
-      value: '156',
+      title: 'Marchands',
+      value: '2735',
       change: '+2.4%',
       changeType: 'positive' as const,
       icon: Shield,
     },
     {
-      title: 'Rapports générés',
+      title: 'Machands endettes',
       value: '24',
       change: '+15.3%',
       changeType: 'positive' as const,
@@ -101,20 +101,20 @@ export default function DirecteurDashboard() {
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <Shield className="w-5 h-5 mr-2 text-purple-600" />
-            Permissions
+            Gestions des marchands
           </h3>
           <div className="space-y-3">
             <button className="w-full text-left p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-              <p className="font-medium text-gray-900">Configurer les rôles</p>
-              <p className="text-sm text-gray-600">Définir les permissions</p>
+              <p className="font-medium text-gray-900">Attibuer une place a un marchand</p>
+              <p className="text-sm text-gray-600">attribution de place</p>
             </button>
             <button className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-              <p className="font-medium text-gray-900">Audit des accès</p>
-              <p className="text-sm text-gray-600">Historique des connexions</p>
+              <p className="font-medium text-gray-900">Piements</p>
+              <p className="text-sm text-gray-600">Historique des paiements</p>
             </button>
             <button className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-              <p className="font-medium text-gray-900">Sécurité</p>
-              <p className="text-sm text-gray-600">Paramètres de sécurité</p>
+              <p className="font-medium text-gray-900">Voir les marchands endettes</p>
+              <p className="text-sm text-gray-600">Voir</p>
             </button>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function DirecteurDashboard() {
             <tbody className="bg-white divide-y divide-gray-200">
               <tr>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  Marie Diop
+                  Madame x
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   Création d'un nouveau marché
@@ -162,7 +162,7 @@ export default function DirecteurDashboard() {
               </tr>
               <tr>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  Amadou Fall
+                  ALbert
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   Modification des permissions
@@ -178,7 +178,7 @@ export default function DirecteurDashboard() {
               </tr>
               <tr>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  Fatou Seck
+                  Ali SUharto
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   Ajout d'un utilisateur

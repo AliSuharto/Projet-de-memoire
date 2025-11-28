@@ -23,7 +23,9 @@ export default function OrdoLayout({ children }: { children: ReactNode }) {
           }}
         />
    <div className='pl-0 md:pl-48 pt-0 min-h-screen'>
+    <div className="p-6">
   {children}
+    </div>
   </div>
   <SideNav items={sideNav} />
   </ProtectedRoute>

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import AddPlaceModal from "@/components/(Directeur)/DetailsMarket/AddPlace";
 import AddHallModal from "@/components/(Directeur)/DetailsMarket/AddHall";
 import AddZoneModal from "@/components/(Directeur)/DetailsMarket/AddZone";
@@ -10,6 +9,7 @@ import ZoneDetailView from "@/components/(Directeur)/ZonedetailsView";
 import HallDetailView from "@/components/HallDetailsView";
 import PlacesTable from "@/components/(Directeur)/PlaceTable";
 import SectionsListView from "@/components/SectionListView";
+import API_BASE_URL from "@/services/APIbaseUrl";
 
 
 interface Zone {
@@ -65,7 +65,6 @@ const MarcheeDetailsPage: React.FC = () => {
   const [showZoneModal, setShowZoneModal] = useState(false);
   const [showHallModal, setShowHallModal] = useState(false);
   const [showPlaceModal, setShowPlaceModal] = useState(false);
-
   useEffect(() => {
     if (!id) {
       setLoading(false);
@@ -87,7 +86,7 @@ const MarcheeDetailsPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`http://localhost:8080/api/marchees/${marcheeId}`, {
+      const response = await fetch(`${API_BASE_URL}/marchees/${marcheeId}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
@@ -97,6 +96,7 @@ const MarcheeDetailsPage: React.FC = () => {
       }
 
       const data = await response.json();
+      console.log("✅ Détails du marché reçus depuis l'API:", data);
       setMarchee(data);
     } catch (err: any) {
       setError(err.message || "Erreur inconnue");

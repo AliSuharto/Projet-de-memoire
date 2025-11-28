@@ -5,6 +5,7 @@ import {  Save, X, AlertCircle } from 'lucide-react';
 import PlaceSection from '@/components/(Directeur)/PaceSection';
 import HallSection from '@/components/(Directeur)/HallSection';
 import ZoneSection from '@/components/(Directeur)/ZoneSection';
+import API_BASE_URL from '@/services/APIbaseUrl';
 
 // Type
 
@@ -12,7 +13,6 @@ import ZoneSection from '@/components/(Directeur)/ZoneSection';
 const generateId = () => Math.random().toString(36).substring(2) + Date.now().toString(36);
 
 // Confirmation Modal Component
-
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,
@@ -277,7 +277,7 @@ const removeIds = (obj: any): any => {
 
     // Envoi de la requête POST avec Bearer Token
     const response = await axios.post(
-      'http://localhost:8080/api/marchees', // Remplace par ton endpoint exact
+      `${API_BASE_URL}/marchees`, // Remplace par ton endpoint exact
       cleanedMarket, // Données à envoyer
       {
         headers: {

@@ -154,9 +154,14 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
     '/dashboard/ordo/creerPrmc',
     '/dashboard/ordo/marchands'
   ],
-  Régisseur: [
+  regisseur: [
     '/dashboard',
     '/dashboard/regisseur'
+  ],
+
+  regisseur_principal: [
+    '/dashboard',
+    '/dashboard/regisseur_principal'
   ],
   PERP: [
     '/dashboard',
@@ -172,7 +177,7 @@ export const DEFAULT_DASHBOARD: Record<UserRole, string> = {
   Admin: '/dashboard',
   PRMC: '/dashboard/prmc',
   Ordonnateur: '/dashboard/ordonnateur',
-  Regisseur: '/dashboard/regisseur',
+  regisseur: '/dashboard/regisseur',
   regisseur_principal: '/dashboard/regisseur_principal',
   PERP: '/dashboard/perp',
   Utilisateur: '/dashboard'

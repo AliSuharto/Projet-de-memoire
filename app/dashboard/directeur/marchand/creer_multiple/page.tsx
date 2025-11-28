@@ -2,6 +2,7 @@
 
 import React, { useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import API_BASE_URL from '@/services/APIbaseUrl';
 
 /**
  * Page combinée pour la gestion des Marchands
@@ -10,7 +11,6 @@ import axios from 'axios';
  * - Interface avec onglets pour basculer entre les deux modes
  */
 
-const API_BASE_URL = 'http://localhost:8080/api';
 
 // Types
 type MarchandForm = {

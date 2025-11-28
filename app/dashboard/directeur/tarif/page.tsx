@@ -8,6 +8,7 @@ import Modal, { ModalContent, ModalFooter } from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { TableColumn, TableAction } from "@/app/types/common";
+import API_BASE_URL from "@/services/APIbaseUrl";
 
 // =======================
 // Types locaux
@@ -39,7 +40,6 @@ interface UpdateCategorieForm extends CreateCategorieForm {}
 // =======================
 // Services API
 // =======================
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 const categorieService = {
   // Récupérer toutes les catégories

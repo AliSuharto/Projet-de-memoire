@@ -8,6 +8,7 @@ import Modal, { ModalContent, ModalFooter } from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { Market, TableColumn, TableAction } from "@/app/types/common";
+import API_BASE_URL from "@/services/APIbaseUrl";
 
 // =======================
 // Types locaux
@@ -22,7 +23,6 @@ interface CreateMarketForm {
 // =======================
 // Services API
 // =======================
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 const token = localStorage.getItem('token') ;
 const marketService = {
   // Récupérer tous les marchés
@@ -39,33 +39,44 @@ const marketService = {
     if (!response.ok) {
       throw new Error(`Erreur ${response.status}: ${response.statusText}`);
     }
-    
-    return await response.json();
+     const data = await response.json();
+
+  console.log("✅ Données marchés reçues depuis l'API:", data);
+
+  return data;
   },
 
   // Créer un nouveau marché
   create: async (data: CreateMarketForm): Promise<Market> => {
-    const response = await fetch(`${API_BASE_URL}/marchees`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        nom: data.nom,
-        adresse: data.adresse,
-        nbrPlace: data.nbrPlace ? parseInt(data.nbrPlace) : null,
-        description: data.description || null,
-        
-      }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-    }
-    
-    return await response.json();
-  },
+  const response = await fetch(`${API_BASE_URL}/marchees`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      nom: data.nom,
+      adresse: data.adresse,
+      nbrPlace: data.nbrPlace ? parseInt(data.nbrPlace) : null,
+      description: data.description || null,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Erreur ${response.status}: ${errorText}`);
+  }
+
+  const result = await response.json();
+
+  // ✅ Extraire uniquement le marché créé
+  if (!result.success) {
+    throw new Error(result.message || "Erreur inconnue");
+  }
+
+  return result.data as Market;
+},
+
 
   // Modifier un marché
   update: async (id: number, data: Partial<Market>): Promise<Market> => {
@@ -159,7 +170,7 @@ const getTableColumns = (): TableColumn<Market>[] => [
     sortable: true,
     className: 'text-center',
     render: (market) => (
-      <span className="font-medium">{market.nbrPlace || 0}</span>
+      <span className="font-medium">{market.totalPlaces || 0}</span>
     ),
   },
   {

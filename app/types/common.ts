@@ -52,7 +52,7 @@ export interface User extends BaseEntity {
 export interface Market extends BaseEntity {
   nom: string;
   adresse?: string;
-  nombreDePlace: number;
+  totalPlaces: number;
   tauxOccupation: number;
   statut?: 'Actif' | 'Inactif' | 'Maintenance';
   description?: string;

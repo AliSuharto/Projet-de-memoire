@@ -37,15 +37,7 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-// Type pour l'utilisateur du contexte d'authentification
-// export interface AuthUser {
-//   id: number;
-//   email: string;
-//   nom: string;
-//   prenom: string;
-//   role: string;
-//   avatar?: string;
-// }
+
 
 class AuthService {
   // Connexion utilisateur

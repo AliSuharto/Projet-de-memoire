@@ -12,7 +12,8 @@ import {
   Calendar,
   CreditCard,
   Receipt,
-  Tags
+  Tags,
+  InfoIcon
 } from 'lucide-react';
 import { SideNavItem, TopNavItem } from '@/types/navigation';
 
@@ -356,9 +357,6 @@ export const NAVIGATION_CONFIG = {
 
 
 
-
-
-
     {
       href: "/dashboard/directeur/marches/liste",
       icon: Settings,
@@ -374,6 +372,17 @@ export const NAVIGATION_CONFIG = {
       href: "/dashboard/directeur/tarif",
       icon: Tags,
       label: "Tarifs"
+    },
+
+    {
+      href: "/dashboard/directeur/attribPlace",
+      icon: InfoIcon,
+      label: "Attribution des places"
+    },
+    {
+      href: "/dashboard/directeur/attribExemple",
+      icon: Calendar,
+      label: "Attributions exemples"
     },
   ] as UnifiedNavItem[],
 
