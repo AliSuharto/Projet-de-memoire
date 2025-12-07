@@ -1,439 +1,420 @@
-'use client'
+'use client';
+import React, { useState, useEffect } from 'react';
+import { Search, Store, Loader2, User } from 'lucide-react';
 
-import { useState, useEffect } from 'react'
-
-// Types TypeScript pour le système de paiement
-interface PaiementRequest {
-  percepteurId: number
-  nomPayeur: string
-  montant: number
-  description?: string
-  modePaiement: string
+interface Place {
+  id: number;
+  nom: string;
+  salleName: string;
+  zoneName: string;
+  marcheeName: string;
+  categorieId: number | null;
+  categorieName: string | null;
+  dateDebutOccupation: string | null;
+  dateFinOccupation: string | null;
 }
 
-interface PaiementResponse {
-  paiementId: number
-  numeroRecu: string
-  nomPayeur: string
-  montant: number
-  modePaiement: string
-  datePaiement: string
-  message: string
+interface MerchantData {
+  id: number;
+  nom: string;
+  cin: string;
+  telephone: string;
+  activite: string;
+  statut: string;
+  debutContrat: string;
+  places: Place[];
+  nif: string | null;
+  stat: string | null;
 }
 
-interface StatistiquesPercepteur {
-  recusLibres: number
-  recusUtilises: number
-  prochainNumero: string
+interface Session {
+  id: number;
+  nomSession: string;
+  status: string;
 }
 
-export default function TraiterPaiement() {
-  // États du formulaire de paiement
-  const [formData, setFormData] = useState<PaiementRequest>({
-    percepteurId: 1, // À adapter selon votre système d'auth
-    nomPayeur: '',
-    montant: 0,
-    description: '',
-    modePaiement: 'ESPECES'
-  })
+type PaymentType = 'droit_annuel' | 'droit_place';
 
-  // États de l'interface
-  const [statistiques, setStatistiques] = useState<StatistiquesPercepteur | null>({
-    recusLibres: 25,
-    recusUtilises: 5,
-    prochainNumero: 'REC-2025-001'
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string>('')
-  const [success, setSuccess] = useState<string>('')
-  const [dernierPaiement, setDernierPaiement] = useState<PaiementResponse | null>(null)
+export default function PaiementMarchand() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [merchantData, setMerchantData] = useState<MerchantData | null>(null);
+  const [paymentType, setPaymentType] = useState<PaymentType>('droit_place');
+  // const [montant, setMontant] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  // Simulation du chargement des statistiques
-  const chargerStatistiques = async () => {
-    try {
-      // Simulation d'un appel API
-      console.log('Chargement des statistiques...')
-      // En production, remplacez par votre appel API réel
-    } catch (err) {
-      console.error('Erreur chargement statistiques:', err)
-    }
-  }
+  // Session management
+  const [session, setSession] = useState<Session | null>(null);
+  const [showCreateSessionModal, setShowCreateSessionModal] = useState(false);
+  const [sessionName, setSessionName] = useState('');
+  const [creatingSession, setCreatingSession] = useState(false);
 
+  // Vérifier la session ouverte au chargement
   useEffect(() => {
-    chargerStatistiques()
-  }, [formData.percepteurId])
+    const checkOpenSession = async () => {
+      try {
+        const storedUser = localStorage.getItem('user') || localStorage.getItem('currentUser');
+        if (!storedUser) {
+          setShowCreateSessionModal(true);
+          return;
+        }
 
-  // Validation du formulaire
-  const validateForm = (): string => {
-    if (!formData.nomPayeur.trim()) return 'Le nom du payeur est obligatoire'
-    if (formData.montant <= 0) return 'Le montant doit être supérieur à 0'
-    if (!formData.modePaiement) return 'Le mode de paiement est obligatoire'
-    return ''
-  }
+        const user = JSON.parse(storedUser);
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setShowCreateSessionModal(true);
+          return;
+        }
 
-  // Traiter le paiement
-  const handleTraiterPaiement = async () => {
-    setError('')
-    setSuccess('')
-    setIsLoading(true)
+        const res = await fetch(`http://localhost:8080/api/sessions/user/${user.id}/open`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-    const validationError = validateForm()
-    if (validationError) {
-      setError(validationError)
-      setIsLoading(false)
-      return
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.status === 'OUVERTE') {
+            setSession(data);
+            return;
+          }
+        }
+
+        // Pas de session ouverte → on ouvre le modal
+        setShowCreateSessionModal(true);
+      } catch (err) {
+        console.error(err);
+        setShowCreateSessionModal(true);
+      }
+    };
+
+    checkOpenSession();
+  }, []);
+
+  // Auto-fermeture des messages success / error après 5 secondes
+        useEffect(() => {
+          if (success || error) {
+            const timer = setTimeout(() => {
+              setSuccess('');
+              setError('');
+            }, 5000); // 5 secondes
+
+            // Nettoyage au cas où le composant se démonte avant la fin du timer
+            return () => clearTimeout(timer);
+          }
+        }, [success, error]);
+
+  // Créer une nouvelle session
+  const createSession = async () => {
+    if (!sessionName.trim()) {
+      setError('Veuillez entrer un nom pour la session');
+      return;
     }
+
+    setCreatingSession(true);
+    setError('');
 
     try {
-      // Simulation de la réponse API
-      const mockResponse: PaiementResponse = {
-        paiementId: Math.floor(Math.random() * 1000),
-        numeroRecu: statistiques?.prochainNumero || 'REC-2025-001',
-        nomPayeur: formData.nomPayeur,
-        montant: formData.montant,
-        modePaiement: formData.modePaiement,
-        datePaiement: new Date().toISOString(),
-        message: 'Paiement enregistré avec succès'
-      }
-      
-      // Simpler un délai d'API
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      setDernierPaiement(mockResponse)
-      setSuccess(`Paiement enregistré avec succès! Reçu n° ${mockResponse.numeroRecu} attribué.`)
-      
-      // Mettre à jour les statistiques
-      if (statistiques) {
-        setStatistiques({
-          ...statistiques,
-          recusLibres: statistiques.recusLibres - 1,
-          recusUtilises: statistiques.recusUtilises + 1,
-          prochainNumero: `REC-2025-${String(parseInt(statistiques.prochainNumero.split('-')[2]) + 1).padStart(3, '0')}`
-        })
-      }
-      
-      // Réinitialiser le formulaire (garder le percepteur)
-      setFormData({
-        percepteurId: formData.percepteurId,
-        nomPayeur: '',
-        montant: 0,
-        description: '',
-        modePaiement: 'ESPECES'
-      })
-      
+      const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user') || localStorage.getItem('currentUser');
+      const user = JSON.parse(storedUser!);
+
+      const response = await fetch('http://localhost:8080/api/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          nomSession: sessionName,
+          userId: user.id
+        }),
+      });
+
+      if (!response.ok) throw new Error('Erreur lors de la création de la session');
+
+      const data = await response.json();
+      setSession({
+        id: data.sessionId,
+        nomSession: data.nomSession,
+        status: data.status || 'OUVERTE',
+      });
+      console.log('Session créée :', data);
+
+      setShowCreateSessionModal(false);
+      setSessionName('');
+      setSuccess('Session créée avec succès !');
     } catch (err: any) {
-      console.error('Erreur paiement:', err)
-      setError('Erreur lors du traitement du paiement')
+      setError(err.message || 'Impossible de créer la session');
     } finally {
-      setIsLoading(false)
+      setCreatingSession(false);
     }
-  }
+  };
 
-  // Imprimer le reçu (simulation)
-  const handleImprimerRecu = () => {
-    if (!dernierPaiement) return
-    
-    const contenuRecu = `
-═══════════════════════════════════════════════
-                   REÇU DE PAIEMENT
-═══════════════════════════════════════════════
-
-Numéro de reçu: ${dernierPaiement.numeroRecu}
-Date: ${new Date(dernierPaiement.datePaiement).toLocaleDateString('fr-FR')}
-
-Reçu de: ${dernierPaiement.nomPayeur}
-Montant: ${dernierPaiement.montant.toFixed(2)} €
-Mode de paiement: ${dernierPaiement.modePaiement}
-
-Percepteur ID: ${formData.percepteurId}
-
-═══════════════════════════════════════════════
-        Merci pour votre paiement
-═══════════════════════════════════════════════
-    `
-    
-    // Ouvrir dans une nouvelle fenêtre pour impression
-    const fenetre = window.open('', '_blank')
-    if (fenetre) {
-      fenetre.document.write(`<pre style="font-family: monospace; white-space: pre-wrap;">${contenuRecu}</pre>`)
-      fenetre.document.close()
-      fenetre.print()
+  // Recherche marchand
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      setError('Veuillez entrer un nom ou numéro CIN');
+      return;
     }
-  }
+
+    setLoading(true);
+    setError('');
+    setMerchantData(null);
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/public/marchands/by-cin/${searchTerm}`);
+      if (!response.ok) throw new Error('Marchand non trouvé');
+      const data: MerchantData = await response.json();
+      setMerchantData(data);
+    } catch (err) {
+      setError('Marchand non trouvé ou erreur serveur');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Paiement (utilise session.id automatiquement)
+  const handlePayment = async () => {
+    if (!merchantData) return setError('Recherchez d\'abord un marchand');
+    if (!session) return setError('Aucune session active');
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const payload = JSON.parse(atob(token!.split('.')[1]));
+      const idAgent = payload.id || payload.userId || payload.agentId;
+
+      const response = await fetch('http://localhost:8080/api/paiements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          sessionId: session.id,
+          idAgent,
+          idMarchand: merchantData.id,
+          typePaiement: paymentType,
+          // montant: parseFloat(montant),  // si ton API le demande
+        }),
+      });
+
+      if (!response.ok) throw new Error('Échec du paiement');
+
+      setSuccess('Paiement enregistré avec succès !');
+      setMontant('');
+      setMerchantData(null);
+      setSearchTerm('');
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors du paiement');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAddressFromPlaces = (places: Place[]) => {
+    if (!places?.length) return 'Aucune place assignée';
+    const p = places[0];
+    return [p.nom, p.salleName, p.zoneName, p.marcheeName].filter(Boolean).join(', ');
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
-        
-        {/* En-tête avec statistiques */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          
-          {/* Titre principal */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border p-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              💳 Traiter un Paiement
-            </h1>
-            <p className="text-gray-600">
-              Le système attribuera automatiquement le prochain reçu disponible dans l'ordre
-            </p>
+    <>
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900">Paiement Marchand</h1>
+              <p className="text-gray-600 mt-2">
+                Session active :{' '}
+                <span className="font-semibold text-blue-600">
+                  {session ? session.nomSession : 'Aucune'}
+                </span>
+              </p>
+            </div>
+            {session && (
+              <div className="text-sm bg-green-100 text-green-800 px-4 py-2 rounded-lg font-medium">
+                Session #{session.id} • OUVERTE
+              </div>
+            )}
           </div>
 
-          {/* Statistiques du percepteur */}
-          {statistiques && (
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold mb-4">📊 Vos Statistiques</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Reçus libres:</span>
-                  <span className="font-bold">{statistiques.recusLibres}</span>
+          {/* Messages */}
+          
+                          {/* Message de succès */}
+                {success && (
+                  <div className="relative mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 flex items-center justify-between">
+                    <span>{success}</span>
+                    <button
+                      onClick={() => setSuccess('')}
+                      className="text-green-600 hover:text-green-800 ml-4"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                      {/* Message d'erreur */}
+              {error && (
+                <div className="relative mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center justify-between">
+                  <span>{error}</span>
+                  <button
+                    onClick={() => setError('')}
+                    className="text-red-600 hover:text-red-800 ml-4"
+                  >
+                    ✕
+                  </button>
                 </div>
-                <div className="flex justify-between">
-                  <span>Reçus utilisés:</span>
-                  <span className="font-bold">{statistiques.recusUtilises}</span>
+              )}
+
+          {/* Recherche */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <label className="block text-gray-900 font-semibold mb-2">Rechercher un marchand</label>
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder="Nom ou CIN"
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleSearch}
+                disabled={loading}
+                className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-70 flex items-center gap-2"
+              >
+                {loading ? <Loader2 className="animate-spin" size={20} /> : <Search size={20} />}
+                Rechercher
+              </button>
+            </div>
+          </div>
+
+          {/* Infos marchand + formulaire */}
+          {merchantData && session && (
+            // ... ton bloc marchand et formulaire existant (inchangé sauf suppression du champ sessionId)
+            <div className="space-y-6">
+              {/* Infos marchand */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <User className="text-blue-600" size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-xl">{merchantData.nom}</h3>
+                    <p className="text-gray-600">{getAddressFromPlaces(merchantData.places)}</p>
+                    <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
+                      <div><span className="font-medium">CIN :</span> {merchantData.cin}</div>
+                      <div><span className="font-medium">Tél :</span> {merchantData.telephone}</div>
+                      <div><span className="font-medium">Activité :</span> {merchantData.activite}</div>
+                      <div>
+                        <span className={`inline-block px-3 py-1 rounded text-xs font-medium ${
+                          merchantData.statut === 'A_JOUR' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {merchantData.statut}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="border-t border-blue-400 pt-2 mt-3">
-                  <p className="text-sm">Prochain reçu:</p>
-                  <p className="font-bold text-lg">{statistiques.prochainNumero}</p>
+              </div>
+
+              {/* Formulaire paiement */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold mb-4">Type de paiement</h3>
+                <div className="grid md:grid-cols-2 gap-4 mb-6">
+                  <button
+                    onClick={() => setPaymentType('droit_place')}
+                    className={`p-4 rounded-lg border-2 text-left ${paymentType === 'droit_place' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full border-2 ${paymentType === 'droit_place' ? 'border-blue-600' : 'border-gray-400'} flex items-center justify-center`}>
+                        {paymentType === 'droit_place' && <div className="w-3 h-3 bg-blue-600 rounded-full"></div>}
+                      </div>
+                      <div>
+                        <div className="font-medium">Droit de place</div>
+                        <div className="text-sm text-gray-600">Occupation d'emplacement</div>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => setPaymentType('droit_annuel')}
+                    className={`p-4 rounded-lg border-2 text-left ${paymentType === 'droit_annuel' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full border-2 ${paymentType === 'droit_annuel' ? 'border-blue-600' : 'border-gray-400'} flex items-center justify-center`}>
+                        {paymentType === 'droit_annuel' && <div className="w-3 h-3 bg-blue-600 rounded-full"></div>}
+                      </div>
+                      <div>
+                        <div className="font-medium">Droit annuel</div>
+                        <div className="text-sm text-gray-600">Paiement annuel</div>
+                      </div>
+                    </div>
+                  </button>
                 </div>
+
+                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                 
+                </div>
+
+                <button
+                  onClick={handlePayment}
+                  disabled={loading}
+                  className="w-full py-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-70 flex items-center justify-center gap-2"
+                >
+                  {loading ? <Loader2 className="animate-spin" /> : null}
+                  Confirmer le paiement
+                </button>
               </div>
             </div>
           )}
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* Formulaire de paiement */}
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Nouveau Paiement</h2>
-            
-            <div className="space-y-6">
-              
-              {/* Nom du payeur - CORRECTION ICI */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nom du payeur *
-                </label>
-                <input
-                  type="text"
-                  value={formData.nomPayeur}
-                  onChange={(e) => setFormData({...formData, nomPayeur: e.target.value})}
-                  placeholder="Ex: Jean Dupont"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                />
-              </div>
-
-              {/* Montant - CORRECTION ICI */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Montant (€) *
-                </label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={formData.montant || ''}
-                  onChange={(e) => setFormData({...formData, montant: parseFloat(e.target.value) || 0})}
-                  placeholder="0.00"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                />
-              </div>
-
-              {/* Mode de paiement */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mode de paiement *
-                </label>
-                <select
-                  value={formData.modePaiement}
-                  onChange={(e) => setFormData({...formData, modePaiement: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                >
-                  <option value="ESPECES">💵 Espèces</option>
-                  <option value="CHEQUE">📄 Chèque</option>
-                  <option value="CARTE_BANCAIRE">💳 Carte bancaire</option>
-                  <option value="VIREMENT">🏦 Virement</option>
-                  <option value="AUTRE">❓ Autre</option>
-                </select>
-              </div>
-
-              {/* Description optionnelle */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description (optionnel)
-                </label>
-                <textarea
-                  value={formData.description || ''}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Ex: Paiement facture n°123..."
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
-                />
-              </div>
-            </div>
-
-            {/* Messages d'erreur et succès */}
-            {error && (
-              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-red-800">{error}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {success && (
-              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-green-800">{success}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Bouton de traitement */}
-            <div className="mt-8">
-              <button
-                onClick={handleTraiterPaiement}
-                disabled={isLoading || !statistiques?.recusLibres}
-                className={`w-full px-6 py-4 font-semibold rounded-lg text-lg transition-colors focus:ring-2 focus:ring-offset-2 ${
-                  isLoading
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : !statistiques?.recusLibres
-                    ? 'bg-red-300 text-red-700 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
-                }`}
-              >
-                {isLoading ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Traitement en cours...
-                  </span>
-                ) : !statistiques?.recusLibres ? (
-                  '❌ Aucun reçu disponible'
-                ) : (
-                  '💾 Traiter le Paiement'
-                )}
-              </button>
-
-              {!statistiques?.recusLibres && (
-                <p className="mt-2 text-sm text-red-600 text-center">
-                  Veuillez d'abord ajouter une plage de reçus
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Section reçu généré */}
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">🧾 Dernier Reçu Généré</h2>
-            
-            {dernierPaiement ? (
-              <div className="bg-gray-50 rounded-lg p-6 border-2 border-dashed border-gray-300">
-                {/* En-tête du reçu */}
-                <div className="text-center border-b border-gray-300 pb-4 mb-6">
-                  <h3 className="text-2xl font-bold text-gray-800">REÇU DE PAIEMENT</h3>
-                  <p className="text-lg font-mono font-bold text-blue-600 mt-2">
-                    N° {dernierPaiement.numeroRecu}
-                  </p>
-                </div>
-
-                {/* Détails du reçu */}
-                <div className="space-y-4">
-                  <div className="flex justify-between py-2 border-b border-gray-200">
-                    <span className="font-medium">Date:</span>
-                    <span>{new Date(dernierPaiement.datePaiement).toLocaleDateString('fr-FR')}</span>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b border-gray-200">
-                    <span className="font-medium">Payeur:</span>
-                    <span className="font-semibold">{dernierPaiement.nomPayeur}</span>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b border-gray-200">
-                    <span className="font-medium">Montant:</span>
-                    <span className="text-xl font-bold text-green-600">
-                      {dernierPaiement.montant.toFixed(2)} €
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b border-gray-200">
-                    <span className="font-medium">Mode de paiement:</span>
-                    <span>{dernierPaiement.modePaiement.replace('_', ' ')}</span>
-                  </div>
-                </div>
-
-                {/* Boutons d'action */}
-                <div className="flex gap-3 mt-8">
-                  <button
-                    onClick={handleImprimerRecu}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
-                  >
-                    🖨️ Imprimer
-                  </button>
-                  
-                  <button
-                    onClick={() => setDernierPaiement(null)}
-                    className="flex-1 px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
-                  >
-                    ✖️ Fermer
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-12 text-gray-500">
-                <div className="text-6xl mb-4">📄</div>
-                <p className="text-lg">Aucun reçu généré pour le moment</p>
-                <p className="text-sm">Le reçu apparaîtra ici après un paiement</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Section informations importantes */}
-        <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">ℹ️ Important à savoir</h3>
-              <div className="mt-2 text-sm text-yellow-700 space-y-2">
-                <p><strong>🎯 Attribution automatique:</strong> Le système attribue automatiquement le reçu avec le plus petit numéro disponible (ex: 150A avant 150B)</p>
-                <p><strong>🔒 Sécurité:</strong> Chaque percepteur ne peut utiliser que ses propres reçus</p>
-                <p><strong>📊 Ordre de priorité:</strong> Les anciennes plages sont utilisées en priorité avant les nouvelles</p>
-                <p><strong>❌ Reçus utilisés:</strong> Une fois utilisé, un reçu ne peut plus être réutilisé</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Raccourcis rapides */}
-        <div className="mt-6 flex justify-center space-x-4">
-          <button className="px-6 py-2 bg-blue-100 text-blue-700 font-medium rounded-lg hover:bg-blue-200 transition-colors">
-            ➕ Ajouter des Reçus
-          </button>
-          <button className="px-6 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors">
-            📋 Consulter mes Reçus
-          </button>
-        </div>
       </div>
-    </div>
-  )
+
+      {/* Modal création session */}
+      {showCreateSessionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center modal-overlay justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold mb-4">Créer une session de caisse</h2>
+            <p className="text-gray-600 mb-6">
+              Vous n'avez pas de session ouverte. Créez-en une pour commencer les paiements.
+            </p>
+
+            <input
+              type="text"
+              value={sessionName}
+              onChange={(e) => setSessionName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && createSession()}
+              placeholder="Nom de la session (ex: Matin 01/12)"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4 focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+
+            {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => window.location.href = '/login'} // ou déconnexion
+                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={createSession}
+                disabled={creatingSession || !sessionName.trim()}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-70 flex items-center gap-2"
+              >
+                {creatingSession && <Loader2 className="animate-spin" size={20} />}
+                Créer la session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }

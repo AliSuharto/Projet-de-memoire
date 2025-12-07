@@ -191,59 +191,25 @@ export const NAVIGATION_CONFIG = {
     }
   ] as UnifiedNavItem[],
 
-  // REGISSEUR: [
-  //   {
-  //     href: "/dashboard/regisseur",
-  //     icon: Home,
-  //     label: "Accueil"
-  //   },
-  //   {
-  //     href: "/dashboard/regisseur/marchee",
-  //     icon: ShoppingCart,
-  //     label: "Marchés"
-  //   },
-  //   {
-  //     href: "/dashboard/regisseur/marchands",
-  //     icon: Users,
-  //     label: "Marchands"
-  //   },
-  //   {
-  //     href: "/dashboard/regisseur/endettes",
-  //     icon: Database,
-  //     label: "Marchands endettés"
-  //   },
-  //   {
-  //     href: "/dashboard/regisseur/rapports",
-  //     icon: FileText,
-  //     label: "Rapports financiers"
-  //   },
-  //   {
-  //     href: "/dashboard/regisseur/parametres",
-  //     icon: Settings,
-  //     label: "Paramètres"
-  //   }
-  // ] as UnifiedNavItem[],
-
-  // Nouveaux rôles
   ORDONNATEUR: [
     {
-      href: "/dashboard/ordonnateur",
+      href: "/dashboard/ordo",
       icon: Home,
       label: "Accueil"
     },
     {
-      href: "/dashboard/ordonnateur/marches",
+      href: "/dashboard/ordo/marches",
       icon: ShoppingCart,
       label: "Marchés",
       subItems: [
         { 
-          href: "/dashboard/ordonnateur/marches/liste", 
+          href: "/dashboard/ordo/marches/liste", 
           label: "Liste des marchés",
           icon: BookOpen,
           description: "Voir tous les marchés"
         },
         { 
-          href: "/dashboard/ordonnateur/marches/statistiques",
+          href: "/dashboard/ordo/marches/statistiques",
           label: "Statistiques",
           icon: BarChart3,
           description: "Voir les performances" 
@@ -256,17 +222,17 @@ export const NAVIGATION_CONFIG = {
       label: "Marchands"
     },
     {
-      href: "/dashboard/ordonnateur/equipe",
+      href: "/dashboard/ordo/equipe",
       icon: UserCheck,
       label: "Équipe de gestion"
     },
     {
-      href: "/dashboard/ordonnateur/rapports",
+      href: "/dashboard/ordo/rapports",
       icon: FileText,
       label: "Rapports"
     },
     {
-      href: "/dashboard/ordonnateur/parametres",
+      href: "/dashboard/ordo/parametres",
       icon: Settings,
       label: "Paramètres",
       subItems: [
@@ -277,7 +243,7 @@ export const NAVIGATION_CONFIG = {
           description: "Créer un directeur"
         },
         { 
-          href: "/dashboard/ordonnateur/marches/statistiques",
+          href: "/dashboard/ordo/marches/statistiques",
           label: "Statistiques",
           icon: BarChart3,
           description: "Voir les performances" 
@@ -354,14 +320,7 @@ export const NAVIGATION_CONFIG = {
         }
       ]
     },
-
-
-
-    {
-      href: "/dashboard/directeur/marches/liste",
-      icon: Settings,
-      label: "Permissions"
-    },
+    
     {
       href: "/dashboard/directeur/rapports",
       icon: FileText,
@@ -371,18 +330,25 @@ export const NAVIGATION_CONFIG = {
     {
       href: "/dashboard/directeur/tarif",
       icon: Tags,
-      label: "Tarifs"
+      label: "Tarifs des places"
     },
 
     {
-      href: "/dashboard/directeur/attribPlace",
+      href: "/dashboard/directeur/droitannuel",
       icon: InfoIcon,
-      label: "Attribution des places"
+      label: "Droit Annuel"
     },
+
+{
+      href: "/dashboard/directeur/quittance",
+      icon: FileText,
+      label: "Attribution des quittances"
+    },
+
     {
       href: "/dashboard/directeur/attribExemple",
       icon: Calendar,
-      label: "Attributions exemples"
+      label: "Attributions des places"
     },
   ] as UnifiedNavItem[],
 
@@ -394,24 +360,24 @@ REGISSEUR_PRINCIPAL: [
       label: "Accueil"
     },
     {
-      href: "/dashboard/regisseur_principal/marchands",
+      href: "/dashboard/regisseur_principal/sessions",
       icon: Users,
-      label: "Marchands"
+      label: "Sessions"
     },
     {
-      href: "/dashboard/regisseur_principal/marches",
+      href: "/dashboard/regisseur_principal/validsession",
       icon: ShoppingCart,
-      label: "Marchés"
+      label: " Valider les sessions"
     },
     {
-      href: "/dashboard/redisseur-principal/paiements",
+      href: "/dashboard/regisseur-principal/regisseurs",
       icon: CreditCard,
-      label: "Paiements"
+      label: "Agents recouvreurs"
     },
     {
-      href: "/dashboard/percepteur/recu",
+      href: "/dashboard/regisseur_principal/etats_de_versement",
       icon: Receipt,
-      label: "Reçus"
+      label: "Etats de versement"
     },
     {
       href: "/dashboard/directeur/marches",
@@ -433,8 +399,6 @@ REGISSEUR_PRINCIPAL: [
       ]
     },
 ]as UnifiedNavItem[],
-
-
 
 
   PERCEPTEUR: [
@@ -493,18 +457,18 @@ REGISSEUR: [
       label: "Paiements"
     },
     {
-      href: "/dashboard/regisseur/recu",
+      href: "/dashboard/regisseur/quittances",
       icon: FileText,
-      label: "Reçus"
+      label: "Quittances"
+    },
+    {
+      href: "/dashboard/regisseur/sessions",
+      icon: Calendar,
+      label: "Sessions"
     },
     {
       href: "/dashboard/regisseur/parametres",
       icon: Settings,
-      label: "Paramètres"
-    },
-    {
-      href: "/dashboard/regisseur/recu",
-      icon: FileText,
       label: "Recus"
     }
   ] as UnifiedNavItem[]

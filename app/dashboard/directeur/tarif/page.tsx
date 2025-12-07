@@ -379,19 +379,19 @@ const CategorieModal: React.FC<{
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description (max 10 caractères)
+                Description (max 255 caractères)
               </label>
               <input
                 type="text"
-                maxLength={10}
+                maxLength={255}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Description courte"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 "
+                placeholder="Description "
                 disabled={loading}
               />
               <div className="mt-1 text-xs text-gray-500">
-                {formData.description.length}/10 caractères
+                {formData.description.length}/255caractères
               </div>
             </div>
           </div>

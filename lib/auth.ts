@@ -176,7 +176,7 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
 export const DEFAULT_DASHBOARD: Record<UserRole, string> = {
   Admin: '/dashboard',
   PRMC: '/dashboard/prmc',
-  Ordonnateur: '/dashboard/ordonnateur',
+  Ordonnateur: '/dashboard/ordo',
   regisseur: '/dashboard/regisseur',
   regisseur_principal: '/dashboard/regisseur_principal',
   PERP: '/dashboard/perp',

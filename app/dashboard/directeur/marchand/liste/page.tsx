@@ -204,9 +204,9 @@ const StatCard: React.FC<{
 );
 
 const InfoRow: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (
-  <div className="flex justify-between py-2 border-b border-gray-100">
-    <span className="text-gray-600">{label}:</span>
-    <span className="font-semibold text-gray-900">{value}</span>
+  <div className="py-2 border-b last:border-none">
+    <p className="text-sm text-gray-500">{label}</p>
+    <p className="text-base font-semibold text-gray-900">{value}</p>
   </div>
 );
 
@@ -230,20 +230,51 @@ const MarchandDetailView: React.FC<{
   }, [activeTab]);
 
   const loadPaiements = async () => {
-    try {
-      setLoadingPaiements(true);
-      const data = await marchandService.getPaiements(marchand.id);
-      setPaiements(data);
-    } catch (error) {
-      console.error("Erreur chargement paiements:", error);
-      setPaiements([
-        { id: 1, date: "2024-11-01", montant: 150000, type: "Loyer Novembre", regisseur: "Rabe Michel", methode: "Espèces", statut: "Validé", recu: "REC-2024-1101" },
-        { id: 2, date: "2024-10-01", montant: 150000, type: "Loyer Octobre", regisseur: "Rabe Michel", methode: "Mobile Money", statut: "Validé", recu: "REC-2024-1001" },
-      ]);
-    } finally {
-      setLoadingPaiements(false);
+  try {
+    setLoadingPaiements(true);
+    console.log("Loading payments for marchand ID:", marchand.id);
+
+    const response = await fetch(`${API_BASE_URL}/paiements/marchand/${marchand.id}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+
+    if (!response.ok) throw new Error("Erreur lors du chargement des paiements");
+
+    const result = await response.json();
+
+    if (!result || result.length === 0) {
+      setPaiements([]); // 👉 Important : pas de données fallback ici
+      return;
     }
-  };
+
+    const mapped = result.map((p: any) => ({
+      id: p.id,
+      date: p.datePaiement ? p.datePaiement.substring(0, 10) : "-",
+      montant: p.montant ?? 0,
+      type: p.typePaiement ?? "—",
+      regisseur: p.nomAgent ?? "—",
+      methode: p.modePaiement ?? "—",
+      statut: p.motif ?? "—",
+      recu: p.recuNumero ?? "—",
+      mois: p.moisdePaiement ?? "—",
+      place: p.nomPlace ?? "—",
+    }));
+
+    setPaiements(mapped);
+   
+
+  } catch (error) {
+    console.error("Erreur chargement paiements:", error);
+
+    setPaiements([]); // 👉 Pas de fallback, donc affichage "aucun paiement"
+  } finally {
+    setLoadingPaiements(false);
+  }
+};
+
 
   const hasDebt = marchand.estEndette === true;
   const hasPlace = marchand.hasPlace === true;
@@ -385,7 +416,6 @@ const MarchandDetailView: React.FC<{
                     Informations Personnelles
                   </h3>
                   <div className="space-y-3">
-                    <InfoRow label="ID" value={`M-${marchand.id}`} />
                     <InfoRow label="Nom complet" value={`${marchand.nom} ${marchand.prenom}`} />
                     <InfoRow label="CIN" value={marchand.numCIN} />
                     <InfoRow label="Téléphone 1" value={marchand.numTel1 || 'Non renseigné'} />
@@ -404,7 +434,7 @@ const MarchandDetailView: React.FC<{
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
                     <MapPin className="mr-2 text-blue-600" size={20} />
-                    Places Occupées
+                    Places Occupée
                   </h3>
                   {places.length > 0 ? (
                     <div className="space-y-4">
@@ -450,7 +480,7 @@ const MarchandDetailView: React.FC<{
               <div>
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-lg font-bold text-gray-900">Historique des Paiements</h3>
-                  <Button icon={DollarSign}>Nouveau Paiement</Button>
+                  
                 </div>
 
                 {loadingPaiements ? (
@@ -466,7 +496,7 @@ const MarchandDetailView: React.FC<{
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Type</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Montant</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Régisseur</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Statut</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Motif</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
@@ -476,9 +506,8 @@ const MarchandDetailView: React.FC<{
                             <td className="px-4 py-4 text-sm">{p.type}</td>
                             <td className="px-4 py-4 text-sm font-semibold">{formatCurrency(p.montant)}</td>
                             <td className="px-4 py-4 text-sm text-gray-600">{p.regisseur}</td>
-                            <td className="px-4 py-4">
-                              <StatusBadge status={p.statut} variant="success" size="sm" />
-                            </td>
+                            <td className="px-4 py-4 text-sm text-gray-600">{p.statut} </td>
+                                   
                           </tr>
                         ))}
                       </tbody>

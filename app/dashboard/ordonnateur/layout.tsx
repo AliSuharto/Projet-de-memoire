@@ -11,15 +11,15 @@ export default function OrdonnateurLayout({ children }: { children: React.ReactN
   const { topNav, sideNav } = useRoleNavigation();
 
   return (
-    <ProtectedRoute allowedRoles={['ordonnateur', 'ordo']}>
+    <ProtectedRoute allowedRoles={['CREATEUR']}>
       <div>
         <Topnav 
           navigationItems={topNav}
           isAuthenticated={true}
           notifications={3}
           user={{
-            name: user?.nom || 'Ordonnateur',
-            email: user?.email || 'ordonnateur@commune.mg'
+            name: user?.nom || 'CREATEUR',
+            email: user?.email || 'createur@commune.mg'
           }}
         />
         <SideNav items={sideNav} />

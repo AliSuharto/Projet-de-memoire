@@ -1,492 +1,550 @@
 'use client';
+import React, { useState, useEffect } from 'react';
+import { Search, Store, Loader2, CheckCircle, XCircle, CreditCard, Calendar, X, Sparkles, MapPin, Phone, Briefcase, Hash } from 'lucide-react';
 
-import React, { useState } from "react"
-import axios from "axios"
-import { jwtDecode } from "jwt-decode"
-
-// Types pour le payload du token
-interface JwtPayload {
-  id: number
-  exp?: number
-  iat?: number
+interface Place {
+  id: number;
+  nom: string;
+  salleName: string;
+  zoneName: string;
+  marcheeName: string;
+  categorieId: number | null;
+  categorieName: string | null;
+  dateDebutOccupation: string | null;
+  dateFinOccupation: string | null;
 }
 
-// Types pour ton formulaire
-interface RecuPlageRequest {
-  percepteurId: number
-  debut: string
-  fin: string
-  type: "NUMERIC" | "ALPHANUMERIC"
-  multiplicateur?: number
+interface MerchantData {
+  id: number;
+  nom: string;
+  cin: string;
+  telephone: string;
+  activite: string;
+  statut: string;
+  debutContrat: string;
+  places: Place[];
+  nif: string | null;
+  stat: string | null;
 }
 
-// Réponse API
-interface RecuPlageResponse {
-  message: string
-  totalGeneres: number
-  numerosGeneres: string[]
+interface Session {
+  id: number;
+  nomSession: string;
+  status: string;
 }
 
+type PaymentType = 'droit_annuel' | 'droit_place';
 
+export default function PaiementMarchand() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [merchantData, setMerchantData] = useState<MerchantData | null>(null);
+  const [paymentType, setPaymentType] = useState<PaymentType>('droit_place');
+  const [montant, setMontant] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-export default function AjouterRecu() {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-  let percepteurIdFromToken = 0
+  // Session management
+  const [session, setSession] = useState<Session | null>(null);
+  const [showCreateSessionModal, setShowCreateSessionModal] = useState(false);
+  const [sessionName, setSessionName] = useState('');
+  const [creatingSession, setCreatingSession] = useState(false);
 
-  if (token) {
-    try {
-      const decoded = jwtDecode<JwtPayload>(token)
-      percepteurIdFromToken = decoded.id
-    } catch (error) {
-      console.error('Erreur de décodage du token:', error)
-    }
-  }
-
-  // États du formulaire
-  const [formData, setFormData] = useState<RecuPlageRequest>({
-    percepteurId: percepteurIdFromToken,
-    debut: '',
-    fin: '',
-    type: 'NUMERIC',
-    multiplicateur: undefined
-  })
-
-  // États pour l'aperçu et la pagination
-  const [previewNumeros, setPreviewNumeros] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string>('')
-  const [success, setSuccess] = useState<string>('')
-  const [showPreview, setShowPreview] = useState(false)
-
-  // Pagination pour l'aperçu
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 50
-  const totalPages = Math.ceil(previewNumeros.length / itemsPerPage)
-
-  // Configuration API simulée
-  const API_BASE_URL = 'http://localhost:8080/api'
-
-  // Validation du formulaire
-  const validateForm = (): string => {
-    if (!formData.debut.trim()) return 'Le début est obligatoire'
-    if (!formData.fin.trim()) return 'La fin est obligatoire'
-    
-    if (formData.type === 'NUMERIC') {
-      const debut = parseInt(formData.debut)
-      const fin = parseInt(formData.fin)
-      if (isNaN(debut) || isNaN(fin)) return 'Les valeurs doivent être numériques'
-      if (fin <= debut) return 'La fin doit être supérieure au début'
-    }
-    
-    if (formData.type === 'ALPHANUMERIC') {
-      if (formData.debut.length < 2 || formData.fin.length < 2) {
-        return 'Format alphanumérique invalide (ex: 45601A)'
-      }
-      const baseDebut = formData.debut.slice(0, -1)
-      const baseFin = formData.fin.slice(0, -1)
-      if (baseDebut !== baseFin) {
-        return 'La base numérique doit être identique'
-      }
-    }
-    
-    if (formData.multiplicateur && formData.multiplicateur < 0) {
-      return 'Le multiplicateur doit être positif'
-    }
-    
-    return ''
-  }
-
-  // Génération locale pour l'aperçu
-  const generatePreviewNumeros = (data: RecuPlageRequest): string[] => {
-    const numeros: string[] = []
-    
-    try {
-      if (data.type === 'NUMERIC') {
-        const debut = parseInt(data.debut)
-        const fin = parseInt(data.fin)
-        
-        for (let i = debut; i <= fin; i++) {
-          numeros.push(String(i))
+  // Vérifier la session ouverte au chargement
+  useEffect(() => {
+    const checkOpenSession = async () => {
+      try {
+        const storedUser = localStorage.getItem('user') || localStorage.getItem('currentUser');
+        if (!storedUser) {
+          setShowCreateSessionModal(true);
+          return;
         }
-      } else if (data.type === 'ALPHANUMERIC') {
-        const base = data.debut.slice(0, -1)
-        const lettreDebut = data.debut.charAt(data.debut.length - 1)
-        const lettreFin = data.fin.charAt(data.fin.length - 1)
-        
-        for (let i = lettreDebut.charCodeAt(0); i <= lettreFin.charCodeAt(0); i++) {
-          numeros.push(base + String.fromCharCode(i))
+
+        const user = JSON.parse(storedUser);
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setShowCreateSessionModal(true);
+          return;
         }
-      }
-      
-      if (data.multiplicateur && data.multiplicateur > 0) {
-        const numerosAvecMultiplicateur: string[] = []
-        for (const numeroBase of numeros) {
-          for (let i = 0; i < data.multiplicateur; i++) {
-            const suffixe = String.fromCharCode('A'.charCodeAt(0) + i)
-            numerosAvecMultiplicateur.push(numeroBase + suffixe)
+
+        const res = await fetch(`http://localhost:8080/api/sessions/user/${user.id}/open`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.status === 'OUVERTE') {
+            setSession(data);
+            return;
           }
         }
-        return numerosAvecMultiplicateur
+
+        setShowCreateSessionModal(true);
+      } catch (err) {
+        console.error(err);
+        setShowCreateSessionModal(true);
       }
-      
-      return numeros
-    } catch (error) {
-      console.error('Erreur génération:', error)
-      return []
+    };
+
+    checkOpenSession();
+  }, []);
+
+  // Auto-fermeture des messages success / error après 5 secondes
+  useEffect(() => {
+    if (success || error) {
+      const timer = setTimeout(() => {
+        setSuccess('');
+        setError('');
+      }, 5000);
+      return () => clearTimeout(timer);
     }
-  }
+  }, [success, error]);
 
-  // Prévisualiser les numéros
-  const handlePrevisualiser = () => {
-    setError('')
-    
-    const validationError = validateForm()
-    if (validationError) {
-      setError(validationError)
-      return
+  // Créer une nouvelle session
+  const createSession = async () => {
+    if (!sessionName.trim()) {
+      setError('Veuillez entrer un nom pour la session');
+      return;
     }
 
-    const numeros = generatePreviewNumeros(formData)
-    setPreviewNumeros(numeros)
-    setShowPreview(true)
-    setCurrentPage(1)
-  }
-
-  // Enregistrer la plage
-  const handleEnregistrer = async () => {
-    setError('')
-    setSuccess('')
-    setIsLoading(true)
-
-    const validationError = validateForm()
-    if (validationError) {
-      setError(validationError)
-      setIsLoading(false)
-      return
-    }
+    setCreatingSession(true);
+    setError('');
 
     try {
-      const response = await axios.post<RecuPlageResponse>(
-        `${API_BASE_URL}/recu-plage`,
-        formData,
-        { headers: { 'Content-Type': 'application/json' } }
-      )
+      const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user') || localStorage.getItem('currentUser');
+      const user = JSON.parse(storedUser!);
 
-      const data = response.data
-      setSuccess(data.message || `Plage créée avec succès! ${data.totalGeneres} reçus générés.`)
-      setPreviewNumeros(data.numerosGeneres)
-      setShowPreview(true)
+      const response = await fetch('http://localhost:8080/api/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          nomSession: sessionName,
+          userId: user.id
+        }),
+      });
 
-      setTimeout(() => {
-        setFormData({
-          percepteurId: formData.percepteurId,
-          debut: '',
-          fin: '',
-          type: 'NUMERIC',
-          multiplicateur: undefined
-        })
-        setShowPreview(false)
-        setPreviewNumeros([])
-        setSuccess('')
-      }, 3000)
+      if (!response.ok) throw new Error('Erreur lors de la création de la session');
 
+      const data = await response.json();
+      setSession({
+        id: data.sessionId,
+        nomSession: data.nomSession,
+        status: data.status || 'OUVERTE',
+      });
+
+      setShowCreateSessionModal(false);
+      setSessionName('');
+      setSuccess('Session créée avec succès !');
     } catch (err: any) {
-      console.error('Erreur:', err)
-      setError(err.response?.data?.message || 'Erreur lors de l\'enregistrement')
+      setError(err.message || 'Impossible de créer la session');
     } finally {
-      setIsLoading(false)
+      setCreatingSession(false);
     }
-  }
+  };
 
-  // Télécharger en CSV
-  const handleDownloadCSV = () => {
-    if (previewNumeros.length === 0) return
+  // Recherche marchand
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      setError('Veuillez entrer un nom ou numéro CIN');
+      return;
+    }
 
-    const csvContent = 'Numero\n' + previewNumeros.join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `recus_${formData.debut}_${formData.fin}.csv`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    window.URL.revokeObjectURL(url)
-  }
+    setLoading(true);
+    setError('');
+    setMerchantData(null);
 
-  // Obtenir les numéros pour la page courante
-  const getCurrentPageNumeros = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    return previewNumeros.slice(startIndex, endIndex)
-  }
+    try {
+      const response = await fetch(`http://localhost:8080/api/public/marchands/by-cin/${searchTerm}`);
+      if (!response.ok) throw new Error('Marchand non trouvé');
+      const data: MerchantData = await response.json();
+      setMerchantData(data);
+    } catch (err) {
+      setError('Marchand non trouvé ou erreur serveur');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Paiement
+  const handlePayment = async () => {
+    if (!merchantData) return setError('Recherchez d\'abord un marchand');
+    if (!session) return setError('Aucune session active');
+    if (!montant || parseFloat(montant) <= 0) return setError('Montant invalide');
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const payload = JSON.parse(atob(token!.split('.')[1]));
+      const idAgent = payload.id || payload.userId || payload.agentId;
+
+      const response = await fetch('http://localhost:8080/api/paiements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          sessionId: session.id,
+          idAgent,
+          idMarchand: merchantData.id,
+          typePaiement: paymentType,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Échec du paiement');
+
+      setSuccess('Paiement enregistré avec succès !');
+      setMontant('');
+      setMerchantData(null);
+      setSearchTerm('');
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors du paiement');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAddressFromPlaces = (places: Place[]) => {
+    if (!places?.length) return 'Aucune place assignée';
+    const p = places[0];
+    return [p.nom, p.salleName, p.zoneName, p.marcheeName].filter(Boolean).join(', ');
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-0 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
-        {/* En-tête */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 border border-gray-100">
-          <h1 className="text-3xl font-bold text-gray-900 mb-1 tracking-tight">
-            Ajouter des Reçus
-          </h1>
-          <p className="text-gray-500 text-lg">
-            Créez et gérez facilement vos séries de numéros de reçus
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {/* Header avec glassmorphism */}
+      <div className="backdrop-blur-md bg-white/70 border-b border-white/20 shadow-lg sticky top-17 z-40">
+        <div className="max-w-6xl mx-auto px-6 py-5">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
+                <CreditCard className="text-white" size={24} />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  Paiement Marchand
+                </h1>
+                {session && (
+                  <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    Session: <span className="font-semibold text-blue-600">{session.nomSession}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            {session && (
+              <div className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full shadow-lg text-sm font-bold transform hover:scale-105 transition-transform">
+                <CheckCircle size={18} />
+                <span>Session #{session.id}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Messages avec animations */}
+        <div className="space-y-3 mb-6">
+          {success && (
+            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 rounded-xl text-green-800 flex items-center justify-between shadow-md animate-in slide-in-from-top duration-300">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                  <CheckCircle className="text-white" size={20} />
+                </div>
+                <span className="font-semibold">{success}</span>
+              </div>
+              <button
+                onClick={() => setSuccess('')}
+                className="text-green-600 hover:text-green-800 hover:bg-green-100 rounded-lg p-2 transition-all"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-4 bg-gradient-to-r from-red-50 to-pink-50 border-l-4 border-red-500 rounded-xl text-red-700 flex items-center justify-between shadow-md animate-in slide-in-from-top duration-300">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                  <XCircle className="text-white" size={20} />
+                </div>
+                <span className="font-semibold">{error}</span>
+              </div>
+              <button
+                onClick={() => setError('')}
+                className="text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg p-2 transition-all"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Formulaire */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 border border-gray-100">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Début */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Début du numéro *
-              </label>
+        {/* Barre de recherche améliorée */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 mb-8 hover:shadow-2xl transition-all duration-300">
+          <label className="block text-gray-900 font-bold text-lg mb-4 flex items-center gap-2">
+            <Search size={24} className="text-blue-600" />
+            Rechercher un marchand
+          </label>
+          <div className="flex gap-4">
+            <div className="relative flex-1">
               <input
                 type="text"
-                value={formData.debut}
-                onChange={(e) => setFormData({...formData, debut: e.target.value})}
-                placeholder={formData.type === 'NUMERIC' ? '120' : '45601A'}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 placeholder-gray-400"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder="Entrez le nom ou CIN du marchand..."
+                className="w-full px-6 py-5 text-lg border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all placeholder:text-gray-400"
               />
             </div>
-
-            {/* Fin */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Fin du numéro *
-              </label>
-              <input
-                type="text"
-                value={formData.fin}
-                onChange={(e) => setFormData({...formData, fin: e.target.value})}
-                placeholder={formData.type === 'NUMERIC' ? '170' : '45601Z'}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 placeholder-gray-400"
-              />
-            </div>
-
-            {/* Type de reçu */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Type de reçu *
-              </label>
-              <select
-                value={formData.type}
-                onChange={(e) => setFormData({...formData, type: e.target.value as 'NUMERIC' | 'ALPHANUMERIC'})}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
-              >
-                <option value="NUMERIC">Numérique (ex: 120, 121, 122...)</option>
-                <option value="ALPHANUMERIC">Alphanumérique (ex: 45601A, 45601B...)</option>
-              </select>
-            </div>
-
-            {/* Multiplicateur */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Multiplicateur (optionnel)
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={formData.multiplicateur || ''}
-                onChange={(e) => setFormData({...formData, multiplicateur: e.target.value ? parseInt(e.target.value) : undefined})}
-                placeholder="Ex: 5 pour générer 120A, 120B, 120C..."
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 placeholder-gray-400"
-              />
-              <p className="text-sm text-gray-500">
-                Ajoute des suffixes (A, B, C...) à chaque numéro
-              </p>
-            </div>
-          </div>
-
-          {/* Messages d'erreur et succès */}
-          {error && (
-            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
-              <svg className="h-5 w-5 text-red-500 mr-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          )}
-
-          {success && (
-            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
-              <svg className="h-5 w-5 text-green-500 mr-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <p className="text-sm text-green-700">{success}</p>
-            </div>
-          )}
-
-          {/* Boutons d'action */}
-          <div className="flex flex-col sm:flex-row gap-4 mt-8">
             <button
-              onClick={handlePrevisualiser}
-              className="flex-1 px-6 py-3 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center gap-2"
+              onClick={handleSearch}
+              disabled={loading}
+              className="px-10 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95"
             >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              Prévisualiser
-            </button>
-            
-            <button
-              onClick={handleEnregistrer}
-              disabled={isLoading}
-              className={`flex-1 px-6 py-3 font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
-                isLoading
-                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
-              }`}
-            >
-              {isLoading ? (
+              {loading ? (
                 <>
-                  <svg className="animate-spin h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Enregistrement...
+                  <Loader2 className="animate-spin" size={24} />
+                  <span>Recherche...</span>
                 </>
               ) : (
                 <>
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                  </svg>
-                  Enregistrer
+                  <Search size={24} />
+                  <span>Rechercher</span>
                 </>
               )}
             </button>
           </div>
         </div>
 
-        {/* Section d'aperçu */}
-        {showPreview && previewNumeros.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">
-                Aperçu des Numéros Générés
-              </h2>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-500 font-medium">
-                  Total: {previewNumeros.length} numéros
-                </span>
-                <button
-                  onClick={handleDownloadCSV}
-                  className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 flex items-center gap-2"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Télécharger CSV
-                </button>
+        {/* Infos marchand + Formulaire */}
+        {merchantData && session && (
+          <div className="grid lg:grid-cols-5 gap-6">
+            {/* Carte Marchand - 2 colonnes */}
+            <div className="lg:col-span-2 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+                  <Store className="text-white" size={32} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-2xl text-gray-900 truncate">{merchantData.nom}</h3>
+                  <p className="text-gray-600 text-sm mt-1 flex items-start gap-1">
+                    <MapPin size={16} className="mt-0.5 flex-shrink-0" />
+                    <span className="line-clamp-2">{getAddressFromPlaces(merchantData.places)}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl hover:from-gray-100 hover:to-gray-200 transition-all">
+                  <div className="flex items-center gap-2 text-gray-600 font-medium">
+                    <Hash size={18} />
+                    <span>CIN</span>
+                  </div>
+                  <span className="font-bold text-gray-900">{merchantData.cin}</span>
+                </div>
+                
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl hover:from-gray-100 hover:to-gray-200 transition-all">
+                  <div className="flex items-center gap-2 text-gray-600 font-medium">
+                    <Phone size={18} />
+                    <span>Téléphone</span>
+                  </div>
+                  <span className="font-bold text-gray-900">{merchantData.telephone}</span>
+                </div>
+                
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl hover:from-gray-100 hover:to-gray-200 transition-all">
+                  <div className="flex items-center gap-2 text-gray-600 font-medium">
+                    <Briefcase size={18} />
+                    <span>Activité</span>
+                  </div>
+                  <span className="font-bold text-gray-900">{merchantData.activite}</span>
+                </div>
+                
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl">
+                  <span className="text-gray-600 font-medium">Statut</span>
+                  <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold shadow-md ${
+                    merchantData.statut === 'A_JOUR' 
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
+                      : 'bg-gradient-to-r from-red-500 to-pink-500 text-white'
+                  }`}>
+                    {merchantData.statut === 'A_JOUR' && <CheckCircle size={16} />}
+                    {merchantData.statut}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Tableau des numéros */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-700">
-                  Page {currentPage} sur {totalPages}
-                </h3>
-              </div>
-              
-              <div className="p-6">
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-                  {getCurrentPageNumeros().map((numero, index) => (
-                    <div
-                      key={index}
-                      className="px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-center text-sm font-mono text-indigo-800 shadow-sm hover:shadow-md transition-all duration-200"
-                    >
-                      {numero}
+            {/* Formulaire Paiement - 3 colonnes */}
+            <div className="lg:col-span-3 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 hover:shadow-2xl transition-all duration-300">
+              <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center">
+                  <Sparkles size={20} className="text-white" />
+                </div>
+                Nouveau Paiement
+              </h3>
+
+              {/* Type de paiement */}
+              <div className="mb-8">
+                <label className="block text-sm font-bold text-gray-700 mb-4">Type de paiement</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => setPaymentType('droit_place')}
+                    className={`group relative p-6 rounded-xl border-2 transition-all duration-300 ${
+                      paymentType === 'droit_place'
+                        ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg scale-105'
+                        : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 hover:scale-102'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+                        paymentType === 'droit_place' 
+                          ? 'border-blue-600 bg-blue-600 shadow-md' 
+                          : 'border-gray-300 group-hover:border-blue-400'
+                      }`}>
+                        {paymentType === 'droit_place' && (
+                          <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
+                        )}
+                      </div>
+                      <div className="text-left">
+                        <div className="font-bold text-gray-900 text-lg">Droit de place</div>
+                        <div className="text-sm text-gray-600 mt-1">Occupation d'emplacement</div>
+                      </div>
                     </div>
-                  ))}
+                  </button>
+
+                  <button
+                    onClick={() => setPaymentType('droit_annuel')}
+                    className={`group relative p-6 rounded-xl border-2 transition-all duration-300 ${
+                      paymentType === 'droit_annuel'
+                        ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 shadow-lg scale-105'
+                        : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/50 hover:scale-102'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+                        paymentType === 'droit_annuel' 
+                          ? 'border-purple-600 bg-purple-600 shadow-md' 
+                          : 'border-gray-300 group-hover:border-purple-400'
+                      }`}>
+                        {paymentType === 'droit_annuel' && (
+                          <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
+                        )}
+                      </div>
+                      <div className="text-left">
+                        <div className="font-bold text-gray-900 text-lg">Droit annuel</div>
+                        <div className="text-sm text-gray-600 mt-1">Paiement annuel</div>
+                      </div>
+                    </div>
+                  </button>
                 </div>
               </div>
+
+              {/* Montant */}
+              <div className="mb-8">
+                <label className="block text-sm font-bold text-gray-700 mb-3">Montant</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={montant}
+                    onChange={(e) => setMontant(e.target.value)}
+                    className="w-full px-6 py-5 pr-24 text-3xl font-bold border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                    placeholder="0.00"
+                  />
+                  <span className="absolute right-6 top-1/2 -translate-y-1/2 text-2xl font-bold text-gray-400">MAD</span>
+                </div>
+              </div>
+
+              {/* Bouton confirmation */}
+              <button
+                onClick={handlePayment}
+                disabled={loading || !montant}
+                className="w-full py-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 active:scale-95 text-lg"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="animate-spin" size={26} />
+                    <span>Traitement en cours...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={26} />
+                    <span>Confirmer le paiement</span>
+                  </>
+                )}
+              </button>
             </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-6">
-                <button
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none ${
-                    currentPage === 1
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500'
-                  }`}
-                >
-                  ← Précédent
-                </button>
-
-                <div className="flex items-center gap-2">
-                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none ${
-                          currentPage === pageNum
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <button
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none ${
-                    currentPage === totalPages
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500'
-                  }`}
-                >
-                  Suivant →
-                </button>
-              </div>
-            )}
           </div>
         )}
 
-        {/* Information d'aide */}
-        <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 mt-8">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-6 w-6 text-indigo-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
+        {/* État vide si pas de marchand */}
+        {!merchantData && !loading && (
+          <div className="text-center py-20">
+            <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <Search className="text-blue-600" size={40} />
             </div>
-            <div className="ml-3">
-              <h3 className="text-base font-semibold text-indigo-800">Guide d'utilisation</h3>
-              <div className="mt-2 text-sm text-indigo-700">
-                <ul className="list-disc list-inside space-y-2">
-                  <li><strong>Numérique :</strong> Saisissez des nombres entiers (ex: début=120, fin=170)</li>
-                  <li><strong>Alphanumérique :</strong> Utilisez un format base + lettre (ex: début=45601A, fin=45601Z)</li>
-                  <li><strong>Multiplicateur :</strong> Ajoute des suffixes (A, B, C...) pour chaque numéro de base</li>
-                  <li><strong>Prévisualiser :</strong> Vérifiez vos numéros avant de les enregistrer</li>
-                </ul>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">Recherchez un marchand</h3>
+            <p className="text-gray-600 text-lg">Utilisez la barre de recherche ci-dessus pour commencer</p>
+          </div>
+        )}
+      </div>
+
+      {/* Modal création session */}
+      {showCreateSessionModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-10 max-w-md w-full shadow-2xl animate-in zoom-in duration-200">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+              <Calendar className="text-white" size={40} />
+            </div>
+            
+            <h2 className="text-3xl font-bold text-center mb-3">Nouvelle Session</h2>
+            <p className="text-gray-600 text-center mb-8">
+              Créez une session de caisse pour commencer les paiements
+            </p>
+
+            <input
+              type="text"
+              value={sessionName}
+              onChange={(e) => setSessionName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && createSession()}
+              placeholder="Ex: Matin 02/12/2025"
+              className="w-full px-6 py-5 border-2 border-gray-200 rounded-xl mb-6 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-lg"
+              autoFocus
+            />
+
+            {error && (
+              <div className="text-red-600 text-sm mb-6 p-4 bg-red-50 rounded-xl font-medium border border-red-200">
+                {error}
               </div>
+            )}
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => window.location.href = '/login'}
+                className="flex-1 px-6 py-4 border-2 border-gray-200 rounded-xl hover:bg-gray-50 font-bold transition-all hover:border-gray-300"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={createSession}
+                disabled={creatingSession || !sessionName.trim()}
+                className="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-2 shadow-lg transition-all transform hover:scale-105 active:scale-95"
+              >
+                {creatingSession && <Loader2 className="animate-spin" size={22} />}
+                Créer la session
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
-  )
+  );
 }
