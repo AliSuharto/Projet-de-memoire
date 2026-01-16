@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Search, Store, Loader2 } from 'lucide-react';
+import API_BASE_URL from '@/services/APIbaseUrl';
 
 interface Place {
   id: number;
@@ -67,7 +68,7 @@ export default function PaiementMarchand() {
           return;
         }
 
-        const res = await fetch(`http://localhost:8080/api/sessions/user/${user.id}/open`, {
+        const res = await fetch(`${API_BASE_URL}/sessions/user/${user.id}/open`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -118,7 +119,7 @@ export default function PaiementMarchand() {
       const storedUser = localStorage.getItem('user') || localStorage.getItem('currentUser');
       const user = JSON.parse(storedUser!);
 
-      const response = await fetch('http://localhost:8080/api/sessions', {
+      const response = await fetch(`${API_BASE_URL}/sessions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -162,7 +163,7 @@ export default function PaiementMarchand() {
     setMerchantData(null);
 
     try {
-      const response = await fetch(`http://localhost:8080/api/public/marchands/by-cin/${searchTerm}`);
+      const response = await fetch(`${API_BASE_URL}/public/marchands/by-cin/${searchTerm}`);
       if (!response.ok) throw new Error('Marchand non trouvé');
       const data: MerchantData = await response.json();
       setMerchantData(data);
@@ -188,7 +189,7 @@ export default function PaiementMarchand() {
       const payload = JSON.parse(atob(token!.split('.')[1]));
       const idAgent = payload.id || payload.userId || payload.agentId;
 
-      const response = await fetch('http://localhost:8080/api/paiements', {
+      const response = await fetch(`${API_BASE_URL}/paiements`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

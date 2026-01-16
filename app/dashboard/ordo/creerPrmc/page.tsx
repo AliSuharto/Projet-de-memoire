@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import API_BASE_URL from '@/services/APIbaseUrl';
 
 // Types
 interface CreateUserRequest {
@@ -137,7 +138,7 @@ export default function CreateUserPage() {
 
     try {
       console.log('formData avant envoi:', formData); // Debug avant envoi
-      const response = await fetch('http://localhost:8080/api/users', {
+      const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'POST',
         headers: {
         "Content-Type": "application/json",

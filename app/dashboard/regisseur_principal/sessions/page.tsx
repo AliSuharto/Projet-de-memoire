@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Search, X, Calendar, User, DollarSign, FileText, Receipt, Store, MapPin, CheckCircle, XCircle, Clock, Filter, ArrowLeft, Eye } from 'lucide-react';
+import API_BASE_URL from '@/services/APIbaseUrl';
 
 // Types
 interface UserSummaryDTO {
@@ -59,7 +60,7 @@ const SessionListPage: React.FC = () => {
         setLoading(true);
         const token = localStorage.getItem('token');
         
-        const response = await fetch(`http://localhost:8080/api/sessions`, {
+        const response = await fetch(`${API_BASE_URL}/sessions`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

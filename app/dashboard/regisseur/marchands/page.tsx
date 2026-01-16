@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
 import { ArrowUpDown, Eye, ArrowLeft, X, Search, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import API_BASE_URL from '@/services/APIbaseUrl';
 // Types
 interface Place {
 nom: string;
@@ -18,6 +19,8 @@ motif: string;
 reference?: string;
 recuNumero?: string;
 nomAgent?: string;
+createdAt: string;
+// dernierePaiement: string;
 }
 interface Marchand {
 id: number;
@@ -74,6 +77,7 @@ throw new Error('Erreur lors du chargement des données');
 }
 const result = await response.json();
 setData(result);
+console.log('Données des marchands chargées :', result);
 setError(null);
 } catch (err) {
 setError(err instanceof Error ? err.message : 'Une erreur est survenue');
@@ -94,9 +98,15 @@ hour: '2-digit',
 minute: '2-digit'
 });
 };
-const getLastPaiement = (paiements: Paiement[]): string | null => {
-if (!paiements || paiements.length === 0) return null;
-return paiements.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date;
+const getLastPaiement = (marchand) => {
+  if (!marchand.paiements || marchand.paiements.length === 0) return "Aucun paiement";
+
+  // Trier par date (si pas déjà trié)
+  const sorted = [...marchand.paiements].sort(
+    (a, b) => new Date(b.datePaiement) - new Date(a.datePaiement)
+  );
+
+  return sorted[0].datePaiement; 
 };
 const uniqueValues = useMemo(() => {
 const marchees = new Set<string>();
@@ -413,7 +423,7 @@ return (
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
-                      {formatDateTime(getLastPaiement(marchand.paiements))}
+                      {formatDateTime(getLastPaiement(marchand))}
                     </td>
                     <td className="px-6 py-4 text-center">
                       <button
@@ -523,7 +533,7 @@ useEffect(() => {
 const fetchPaiements = async () => {
 try {
 setLoading(true);
-const response = await fetch(`http://localhost:8080/api/paiements/marchand/${marchand.id}`);
+const response = await fetch(`${API_BASE_URL}/paiements/marchand/${marchand.id}`);
 if (!response.ok) {
 throw new Error('Erreur lors du chargement des paiements');
 }
@@ -579,7 +589,7 @@ setExpandedPaiement(expandedPaiement === id ? null : id);
 return (
 <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
 {/* Sticky Back Button */}
-<div className="sticky top-17 z-50  backdrop-blur-lg border-b border-slate-200 shadow-sm">
+<div className="sticky top-19 z-50  backdrop-blur-lg border-b border-slate-200 shadow-sm">
 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
 <button
          onClick={onBack}
@@ -599,36 +609,57 @@ Retour à la liste
 
     {/* Info Cards */}
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-      <div className="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-blue-500">
-        <h3 className="text-sm font-semibold text-slate-500 mb-2">Nom du Marchand</h3>
-        <p className="text-2xl font-bold text-slate-900">{marchand.nom}</p>
-</div>
-      <div className="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-indigo-500">
-        <h3 className="text-sm font-semibold text-slate-500 mb-2">Adresse</h3>
-        <p className="text-lg font-semibold text-slate-900">{getFullAddress()}</p>
-      </div>
 
-      <div className="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-purple-500">
-        <h3 className="text-sm font-semibold text-slate-500 mb-2">Activité</h3>
-        <p className="text-lg font-semibold text-slate-900">{marchand.activite}</p>
-      </div>
+        <div className="border-l-4 border-blue-500 pl-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Nom du Marchand
+          </h3>
+          <p className="text-xl font-bold text-slate-900">{marchand.nom}</p>
+        </div>
 
-      <div className="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-emerald-500">
-        <h3 className="text-sm font-semibold text-slate-500 mb-2">ID du Marchand</h3>
-        <p className="text-lg font-bold text-slate-900">MAR-{marchand.id}</p>
-      </div>
+        <div className="border-l-4 border-indigo-500 pl-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Adresse
+          </h3>
+          <p className="text-base font-semibold text-slate-900">{getFullAddress()}</p>
+        </div>
 
-      <div className="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-orange-500">
-        <h3 className="text-sm font-semibold text-slate-500 mb-2">Contact</h3>
-        <p className="text-sm text-slate-700">{marchand.email || 'Non renseigné'}</p>
-        {marchand.telephone && <p className="text-sm text-slate-700">{marchand.telephone}</p>}
-      </div>
+        <div className="border-l-4 border-purple-500 pl-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Activité
+          </h3>
+          <p className="text-base font-semibold text-slate-900">{marchand.activite}</p>
+        </div>
 
-      <div className="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-pink-500">
-        <h3 className="text-sm font-semibold text-slate-500 mb-2">Catégorie</h3>
-        <p className="text-lg font-semibold text-slate-900">{marchand.places[0]?.categorieName || 'Non spécifiée'}</p>
+        <div className="border-l-4 border-emerald-500 pl-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            ID Marchand
+          </h3>
+          <p className="text-base font-bold text-slate-900">MAR-{marchand.id}</p>
+        </div>
+
+        <div className="border-l-4 border-orange-500 pl-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Contact
+          </h3>
+          <div className="text-slate-800">
+            <p className="text-sm">{marchand.email || 'Non renseigné'}</p>
+            {marchand.telephone && (
+              <p className="text-sm">{marchand.telephone}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="border-l-4 border-pink-500 pl-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Catégorie
+          </h3>
+          <p className="text-base font-semibold text-slate-900">
+            {marchand.places[0]?.categorieName || 'Non spécifiée'}
+          </p>
+        </div>
+
       </div>
-    </div>
 
     {/* Action Button */}
     <div className="mb-8">

@@ -1,473 +1,733 @@
-'use client'
+'use client';
+import React, { useState, useEffect } from 'react';
+import { Search, Edit2, Eye, UserPlus, Filter, X, Save, Loader2 } from 'lucide-react';
+import API_BASE_URL from '@/services/APIbaseUrl';
 
-import axios from 'axios'
-import { useState } from 'react'
-
-// Types TypeScript
-interface RecuPlageRequest {
-  percepteurId: number
-  debut: string
-  fin: string
-  type: 'NUMERIC' | 'ALPHANUMERIC'
-  multiplicateur?: number
+// Types
+interface User {
+  id: number;
+  nom: string;
+  prenom: string;
+  email: string;
+  telephone?: string;
+  role: string;
+  isActive: boolean;
+  pseudo?: string;
+  photoUrl?: string;
+  marchees?: { id: number; nom: string }[];
+  zones?: { id: number; nom: string }[];
+  halls?: { id: number; nom: string }[];
+  createdAt: string;
 }
 
-interface RecuPlageResponse {
-  plageId: number
-  numerosGeneres: string[]
-  totalGeneres: number
-  message: string
+interface Location {
+  id: number;
+  nom: string;
 }
 
-export default function AjouterRecu() {
-  // États du formulaire
-  const [formData, setFormData] = useState<RecuPlageRequest>({
-    percepteurId: 1,
-    debut: '',
-    fin: '',
-    type: 'NUMERIC',
-    multiplicateur: undefined
-  })
+interface UpdateUserData {
+  nom?: string;
+  prenom?: string;
+  email?: string;
+  telephone?: string;
+  role?: string;
+  isActive?: boolean;
+  marcheeIds?: number[];
+  zoneIds?: number[];
+  hallIds?: number[];
+}
 
-  // États pour l'aperçu et la pagination
-  const [previewNumeros, setPreviewNumeros] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string>('')
-  const [success, setSuccess] = useState<string>('')
-  const [showPreview, setShowPreview] = useState(false)
+const UserManagementPage: React.FC = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [loading, setLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState<UpdateUserData>({});
+  const [saving, setSaving] = useState(false);
 
-  // Pagination pour l'aperçu
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 50
-  const totalPages = Math.ceil(previewNumeros.length / itemsPerPage)
+  // Données de référence
+  const [marchees, setMarchees] = useState<Location[]>([]);
+  const [zones, setZones] = useState<Location[]>([]);
+  const [halls, setHalls] = useState<Location[]>([]);
 
-  // Configuration API simulée (remplacez par votre vraie API)
-  const API_BASE_URL = 'http://localhost:8080/api'
+  const roles = ['DIRECTEUR', 'ORDONNATEUR', 'PERCEPTEUR', 'CONTROLLEUR', 'AGENT'];
 
-  // Validation du formulaire
-  const validateForm = (): string => {
-    if (!formData.debut.trim()) return 'Le début est obligatoire'
-    if (!formData.fin.trim()) return 'La fin est obligatoire'
-    
-    if (formData.type === 'NUMERIC') {
-      const debut = parseInt(formData.debut)
-      const fin = parseInt(formData.fin)
-      if (isNaN(debut) || isNaN(fin)) return 'Les valeurs doivent être numériques'
-      if (fin <= debut) return 'La fin doit être supérieure au début'
+  // Charger les utilisateurs
+  useEffect(() => {
+    fetchUsers();
+    fetchLocations();
+  }, []);
+
+  // Filtrer les utilisateurs
+  useEffect(() => {
+    let filtered = users;
+
+    if (searchTerm) {
+      filtered = filtered.filter(user =>
+        user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
-    
-    if (formData.type === 'ALPHANUMERIC') {
-      if (formData.debut.length < 2 || formData.fin.length < 2) {
-        return 'Format alphanumérique invalide (ex: 45601A)'
-      }
-      const baseDebut = formData.debut.slice(0, -1)
-      const baseFin = formData.fin.slice(0, -1)
-      if (baseDebut !== baseFin) {
-        return 'La base numérique doit être identique'
-      }
-    }
-    
-    if (formData.multiplicateur && formData.multiplicateur < 0) {
-      return 'Le multiplicateur doit être positif'
-    }
-    
-    return ''
-  }
 
-  // Génération locale pour l'aperçu
-  const generatePreviewNumeros = (data: RecuPlageRequest): string[] => {
-    const numeros: string[] = []
-    
+    if (roleFilter !== 'ALL') {
+      filtered = filtered.filter(user => user.role === roleFilter);
+    }
+
+    if (statusFilter !== 'ALL') {
+      filtered = filtered.filter(user =>
+        statusFilter === 'ACTIVE' ? user.isActive : !user.isActive
+      );
+    }
+
+    setFilteredUsers(filtered);
+  }, [searchTerm, roleFilter, statusFilter, users]);
+
+  const fetchUsers = async () => {
+    setLoading(true);
     try {
-      if (data.type === 'NUMERIC') {
-        const debut = parseInt(data.debut)
-        const fin = parseInt(data.fin)
-        
-        for (let i = debut; i <= fin; i++) {
-          numeros.push(String(i))
+      const response = await fetch(`${API_BASE_URL}/users`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
-      } else if (data.type === 'ALPHANUMERIC') {
-        const base = data.debut.slice(0, -1)
-        const lettreDebut = data.debut.charAt(data.debut.length - 1)
-        const lettreFin = data.fin.charAt(data.fin.length - 1)
-        
-        for (let i = lettreDebut.charCodeAt(0); i <= lettreFin.charCodeAt(0); i++) {
-          numeros.push(base + String.fromCharCode(i))
-        }
-      }
-      
-      // Appliquer le multiplicateur
-      if (data.multiplicateur && data.multiplicateur > 0) {
-        const numerosAvecMultiplicateur: string[] = []
-        for (const numeroBase of numeros) {
-          for (let i = 0; i < data.multiplicateur; i++) {
-            const suffixe = String.fromCharCode('A'.charCodeAt(0) + i)
-            numerosAvecMultiplicateur.push(numeroBase + suffixe)
-          }
-        }
-        return numerosAvecMultiplicateur
-      }
-      
-      return numeros
+      });
+      const data = await response.json();
+      setUsers(data.data || []);
     } catch (error) {
-      console.error('Erreur génération:', error)
-      return []
+      console.error('Erreur lors du chargement des utilisateurs:', error);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  // Prévisualiser les numéros
-  const handlePrevisualiser = () => {
-    setError('')
-    
-    const validationError = validateForm()
-    if (validationError) {
-      setError(validationError)
-      return
+  const fetchLocations = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const [marcheesRes, zonesRes, hallsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/marchees`, { 
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }),
+        fetch(`${API_BASE_URL}/public/zones`, { 
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }),
+        fetch(`${API_BASE_URL}/public/salles/all`, { 
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            
+            'Content-Type': 'application/json'
+          } 
+        })
+      ]);
+      
+      const marcheesData = await marcheesRes.json();
+      const zonesData = await zonesRes.json();
+      const hallsData = await hallsRes.json();
+
+      console.log('Marchés reçus:', marcheesData);
+      console.log('Zones reçues:', zonesData);
+      console.log('Halls reçus:', hallsData);
+
+      // Gérer différents formats de réponse API et s'assurer que c'est un tableau
+      const marcheesArray = Array.isArray(marcheesData) ? marcheesData : 
+                           Array.isArray(marcheesData?.data) ? marcheesData.data : [];
+      const zonesArray = Array.isArray(zonesData) ? zonesData : 
+                        Array.isArray(zonesData?.data) ? zonesData.data : [];
+      const hallsArray = Array.isArray(hallsData) ? hallsData : 
+                        Array.isArray(hallsData?.data) ? hallsData.data : [];
+
+      console.log('Marchés tableau:', marcheesArray);
+      console.log('Zones tableau:', zonesArray);
+      console.log('Halls tableau:', hallsArray);
+
+      setMarchees(marcheesArray);
+      setZones(zonesArray);
+      setHalls(hallsArray);
+    } catch (error) {
+      console.error('Erreur lors du chargement des localisations:', error);
+      // En cas d'erreur, initialiser avec des tableaux vides
+      setMarchees([]);
+      setZones([]);
+      setHalls([]);
     }
+  };
 
-    const numeros = generatePreviewNumeros(formData)
-    setPreviewNumeros(numeros)
-    setShowPreview(true)
-    setCurrentPage(1)
-  }
+  const handleView = (user: User) => {
+    setSelectedUser(user);
+    setIsViewModalOpen(true);
+  };
 
-  // Enregistrer la plage (simulation API)
-  const handleEnregistrer = async () => {
-  setError('')
-  setSuccess('')
-  setIsLoading(true)
+  const handleEdit = (user: User) => {
+    setSelectedUser(user);
+    setEditFormData({
+      nom: user.nom,
+      prenom: user.prenom,
+      email: user.email,
+      telephone: user.telephone,
+      role: user.role,
+      isActive: user.isActive,
+      marcheeIds: user.marchees?.map(m => m.id) || [],
+      zoneIds: user.zones?.map(z => z.id) || [],
+      hallIds: user.halls?.map(h => h.id) || []
+    });
+    setIsEditModalOpen(true);
+  };
 
-  const validationError = validateForm()
-  if (validationError) {
-    setError(validationError)
-    setIsLoading(false)
-    return
-  }
-  console.log('Envoi des données:', formData);
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
 
-  try {
-    const response = await axios.post<RecuPlageResponse>(
-      `${API_BASE_URL}/recu-plage`,
-      formData,
-      { headers: { 'Content-Type': 'application/json' } }
-    )
+    setSaving(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(editFormData)
+      });
 
-    const data = response.data
-    setSuccess(data.message || `Plage créée avec succès! ${data.totalGeneres} reçus générés.`)
-    setPreviewNumeros(data.numerosGeneres)
-    setShowPreview(true)
+      if (response.ok) {
+        await fetchUsers();
+        setIsEditModalOpen(false);
+        setSelectedUser(null);
+      } else {
+        const error = await response.json();
+        alert(error.message || 'Erreur lors de la mise à jour');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Erreur lors de la mise à jour');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-    // Réinitialiser le formulaire après succès
-    setTimeout(() => {
-      setFormData({
-        percepteurId: formData.percepteurId,
-        debut: '',
-        fin: '',
-        type: 'NUMERIC',
-        multiplicateur: undefined
-      })
-      setShowPreview(false)
-      setPreviewNumeros([])
-      setSuccess('')
-    }, 3000)
-
-  } catch (err: any) {
-    console.error('Erreur:', err)
-    setError(err.response?.data?.message || 'Erreur lors de l\'enregistrement')
-  } finally {
-    setIsLoading(false)
-  }
-}
-
-  // Télécharger en CSV
-  const handleDownloadCSV = () => {
-    if (previewNumeros.length === 0) return
-
-    const csvContent = 'Numero\n' + previewNumeros.join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `recus_${formData.debut}_${formData.fin}.csv`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    window.URL.revokeObjectURL(url)
-  }
-
-  // Obtenir les numéros pour la page courante
-  const getCurrentPageNumeros = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    return previewNumeros.slice(startIndex, endIndex)
-  }
+  const getRoleBadgeColor = (role: string) => {
+    const colors: Record<string, string> = {
+      DIRECTEUR: 'bg-purple-100 text-purple-800',
+      ORDONNATEUR: 'bg-blue-100 text-blue-800',
+      PERCEPTEUR: 'bg-green-100 text-green-800',
+      CONTROLLEUR: 'bg-orange-100 text-orange-800',
+      AGENT: 'bg-gray-100 text-gray-800'
+    };
+    return colors[role] || 'bg-gray-100 text-gray-800';
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
         {/* En-tête */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Ajouter une Plage de Reçus
-          </h1>
-          <p className="text-gray-600">
-            Générez automatiquement une série de numéros de reçus selon vos paramètres
-          </p>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestion des Utilisateurs</h1>
+          <p className="text-gray-600">Visualisez et modifiez les informations des utilisateurs</p>
         </div>
 
-        {/* Formulaire */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Début */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Début du numéro *
-              </label>
-              <input
-                type="text"
-                value={formData.debut}
-                onChange={(e) => setFormData({...formData, debut: e.target.value})}
-                placeholder={formData.type === 'NUMERIC' ? '120' : '45601A'}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              />
+        {/* Filtres et recherche */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Rechercher par nom, prénom ou email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
             </div>
 
-            {/* Fin */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fin du numéro *
-              </label>
-              <input
-                type="text"
-                value={formData.fin}
-                onChange={(e) => setFormData({...formData, fin: e.target.value})}
-                placeholder={formData.type === 'NUMERIC' ? '170' : '45601Z'}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              />
-            </div>
-
-            {/* Type de reçu */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Type de reçu *
-              </label>
               <select
-                value={formData.type}
-                onChange={(e) => setFormData({...formData, type: e.target.value as 'NUMERIC' | 'ALPHANUMERIC'})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="NUMERIC">Numérique (ex: 120, 121, 122...)</option>
-                <option value="ALPHANUMERIC">Alphanumérique (ex: 45601A, 45601B...)</option>
+                <option value="ALL">Tous les rôles</option>
+                {roles.map(role => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
               </select>
             </div>
 
-            {/* Multiplicateur */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Multiplicateur (optionnel)
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={formData.multiplicateur || ''}
-                onChange={(e) => setFormData({...formData, multiplicateur: e.target.value ? parseInt(e.target.value) : undefined})}
-                placeholder="Ex: 5 pour générer 120A, 120B, 120C..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                Génère des sous-numéros avec des suffixes A, B, C...
-              </p>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="ALL">Tous les statuts</option>
+                <option value="ACTIVE">Actifs</option>
+                <option value="INACTIVE">Inactifs</option>
+              </select>
             </div>
-          </div>
-
-          {/* Messages d'erreur et succès */}
-          {error && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-red-800">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {success && (
-            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-green-800">{success}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Boutons d'action */}
-          <div className="flex gap-4 mt-6">
-            <button
-              onClick={handlePrevisualiser}
-              className="flex-1 px-6 py-3 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
-            >
-              📋 Prévisualiser
-            </button>
-            
-            <button
-              onClick={handleEnregistrer}
-              disabled={isLoading}
-              className={`flex-1 px-6 py-3 font-medium rounded-lg transition-colors focus:ring-2 focus:ring-offset-2 ${
-                isLoading
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
-              }`}
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Enregistrement...
-                </span>
-              ) : (
-                '💾 Enregistrer'
-              )}
-            </button>
           </div>
         </div>
 
-        {/* Section d'aperçu */}
-        {showPreview && previewNumeros.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Aperçu des Numéros Générés
-              </h2>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-600">
-                  Total: {previewNumeros.length} numéros
-                </span>
-                <button
-                  onClick={handleDownloadCSV}
-                  className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
-                >
-                  📥 Télécharger CSV
-                </button>
-              </div>
-            </div>
-
-            {/* Tableau des numéros */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-                <h3 className="text-sm font-medium text-gray-700">
-                  Page {currentPage} sur {totalPages}
-                </h3>
-              </div>
-              
-              <div className="p-4">
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                  {getCurrentPageNumeros().map((numero, index) => (
-                    <div
-                      key={index}
-                      className="px-3 py-2 bg-blue-50 border border-blue-200 rounded text-center text-sm font-mono"
-                    >
-                      {numero}
-                    </div>
+        {/* Liste des utilisateurs */}
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Utilisateur
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Rôle
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Contact
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Affectations
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Statut
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredUsers.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
+                              {user.prenom[0]}{user.nom[0]}
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {user.prenom} {user.nom}
+                            </div>
+                            <div className="text-sm text-gray-500">{user.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(user.role)}`}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {user.telephone || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">
+                          {user.marchees && user.marchees.length > 0 && (
+                            <div className="mb-1">
+                              <span className="font-medium">Marchés:</span> {user.marchees.length}
+                            </div>
+                          )}
+                          {user.zones && user.zones.length > 0 && (
+                            <div className="mb-1">
+                              <span className="font-medium">Zones:</span> {user.zones.length}
+                            </div>
+                          )}
+                          {user.halls && user.halls.length > 0 && (
+                            <div>
+                              <span className="font-medium">Halls:</span> {user.halls.length}
+                            </div>
+                          )}
+                          {(!user.marchees?.length && !user.zones?.length && !user.halls?.length) && (
+                            <span className="text-gray-400">Aucune</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {user.isActive ? 'Actif' : 'Inactif'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => handleView(user)}
+                          className="text-blue-600 hover:text-blue-900 mr-3"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(user)}
+                          className="text-green-600 hover:text-green-900"
+                        >
+                          <Edit2 className="w-5 h-5" />
+                        </button>
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              </div>
+                </tbody>
+              </table>
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4">
-                <button
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    currentPage === 1
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  ← Précédent
-                </button>
-
-                <div className="flex items-center gap-2">
-                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                          currentPage === pageNum
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <button
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    currentPage === totalPages
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  Suivant →
-                </button>
+            {filteredUsers.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-500">Aucun utilisateur trouvé</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Information d'aide */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-blue-800">Guide d'utilisation</h3>
-              <div className="mt-2 text-sm text-blue-700">
-                <ul className="list-disc list-inside space-y-1">
-                  <li><strong>Numérique:</strong> Entrez des nombres entiers (ex: début=120, fin=170)</li>
-                  <li><strong>Alphanumérique:</strong> Format base + lettre (ex: début=45601A, fin=45601Z)</li>
-                  <li><strong>Multiplicateur:</strong> Crée des sous-numéros avec suffixes A, B, C... pour chaque numéro de base</li>
-                  <li><strong>Prévisualiser:</strong> Vérifiez les numéros avant l'enregistrement définitif</li>
-                </ul>
+        {/* Modal de visualisation */}
+        {isViewModalOpen && selectedUser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Détails de l'utilisateur</h2>
+                  <button
+                    onClick={() => setIsViewModalOpen(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-semibold">
+                      {selectedUser.prenom[0]}{selectedUser.nom[0]}
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        {selectedUser.prenom} {selectedUser.nom}
+                      </h3>
+                      <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getRoleBadgeColor(selectedUser.role)}`}>
+                        {selectedUser.role}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Email</label>
+                      <p className="text-gray-900">{selectedUser.email}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Téléphone</label>
+                      <p className="text-gray-900">{selectedUser.telephone || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Pseudo</label>
+                      <p className="text-gray-900">{selectedUser.pseudo || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Statut</label>
+                      <p>
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          selectedUser.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {selectedUser.isActive ? 'Actif' : 'Inactif'}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {selectedUser.marchees && selectedUser.marchees.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Marchés affectés</label>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedUser.marchees.map(marchee => (
+                          <span key={marchee.id} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                            {marchee.nom}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedUser.zones && selectedUser.zones.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Zones affectées</label>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedUser.zones.map(zone => (
+                          <span key={zone.id} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                            {zone.nom}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedUser.halls && selectedUser.halls.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Halls affectés</label>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedUser.halls.map(hall => (
+                          <span key={hall.id} className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
+                            {hall.nom}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Date de création</label>
+                    <p className="text-gray-900">
+                      {new Date(selectedUser.createdAt).toLocaleDateString('fr-FR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={() => setIsViewModalOpen(false)}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Fermer
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Modal d'édition */}
+        {isEditModalOpen && selectedUser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Modifier l'utilisateur</h2>
+                  <button
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+                      <input
+                        type="text"
+                        value={editFormData.nom || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, nom: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
+                      <input
+                        type="text"
+                        value={editFormData.prenom || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, prenom: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={editFormData.email || ''}
+                      onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                      <input
+                        type="tel"
+                        value={editFormData.telephone || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, telephone: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
+                      <select
+                        value={editFormData.role || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        {roles.map(role => (
+                          <option key={role} value={role}>{role}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={editFormData.isActive || false}
+                        onChange={(e) => setEditFormData({ ...editFormData, isActive: e.target.checked })}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Compte actif</span>
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Marchés ({Array.isArray(marchees) ? marchees.length : 0} disponibles)
+                    </label>
+                    {!Array.isArray(marchees) || marchees.length === 0 ? (
+                      <div className="border border-gray-300 rounded-lg p-3 text-center text-gray-500">
+                        Aucun marché disponible
+                      </div>
+                    ) : (
+                      <div className="border border-gray-300 rounded-lg p-3 max-h-40 overflow-y-auto bg-white">
+                        {marchees.map(marchee => (
+                          <label key={marchee.id} className="flex items-center space-x-2 mb-2 hover:bg-gray-50 p-1 rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editFormData.marcheeIds?.includes(marchee.id) || false}
+                              onChange={(e) => {
+                                const ids = editFormData.marcheeIds || [];
+                                setEditFormData({
+                                  ...editFormData,
+                                  marcheeIds: e.target.checked
+                                    ? [...ids, marchee.id]
+                                    : ids.filter(id => id !== marchee.id)
+                                });
+                              }}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">{marchee.nom}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Zones ({Array.isArray(zones) ? zones.length : 0} disponibles)
+                    </label>
+                    {!Array.isArray(zones) || zones.length === 0 ? (
+                      <div className="border border-gray-300 rounded-lg p-3 text-center text-gray-500">
+                        Aucune zone disponible
+                      </div>
+                    ) : (
+                      <div className="border border-gray-300 rounded-lg p-3 max-h-40 overflow-y-auto bg-white">
+                        {zones.map(zone => (
+                          <label key={zone.id} className="flex items-center space-x-2 mb-2 hover:bg-gray-50 p-1 rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editFormData.zoneIds?.includes(zone.id) || false}
+                              onChange={(e) => {
+                                const ids = editFormData.zoneIds || [];
+                                setEditFormData({
+                                  ...editFormData,
+                                  zoneIds: e.target.checked
+                                    ? [...ids, zone.id]
+                                    : ids.filter(id => id !== zone.id)
+                                });
+                              }}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">{zone.nom}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Halls ({Array.isArray(halls) ? halls.length : 0} disponibles)
+                    </label>
+                    {!Array.isArray(halls) || halls.length === 0 ? (
+                      <div className="border border-gray-300 rounded-lg p-3 text-center text-gray-500">
+                        Aucun hall disponible
+                      </div>
+                    ) : (
+                      <div className="border border-gray-300 rounded-lg p-3 max-h-40 overflow-y-auto bg-white">
+                        {halls.map(hall => (
+                          <label key={hall.id} className="flex items-center space-x-2 mb-2 hover:bg-gray-50 p-1 rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editFormData.hallIds?.includes(hall.id) || false}
+                              onChange={(e) => {
+                                const ids = editFormData.hallIds || [];
+                                setEditFormData({
+                                  ...editFormData,
+                                  hallIds: e.target.checked
+                                    ? [...ids, hall.id]
+                                    : ids.filter(id => id !== hall.id)
+                                });
+                              }}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">{hall.nom}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    disabled={saving}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleUpdateUser}
+                    disabled={saving}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Enregistrement...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-5 h-5" />
+                        <span>Enregistrer</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
-  )
-}
+  );
+};
+
+export default UserManagementPage;

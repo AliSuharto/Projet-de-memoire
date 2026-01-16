@@ -1,8 +1,74 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Download, Check } from "lucide-react";
+import { X, Download, Check, Shield } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+
+// =============================
+// SÉCURITÉ - SIGNATURE QR CODE
+// =============================
+
+// ⚠️ IMPORTANT: Cette clé doit être identique côté backend et mobile
+// En production, utilisez une variable d'environnement sécurisée
+const SECRET_KEY = process.env.NEXT_PUBLIC_QR_SECRET_KEY || "BAZARYKELY_2025_SECRET_KEY_CHANGE_ME";
+
+/**
+ * Génère une signature HMAC-SHA256 pour authentifier le QR code
+ * Utilise l'API Web Crypto disponible dans les navigateurs modernes
+ */
+async function generateSignature(data: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(SECRET_KEY);
+  const messageData = encoder.encode(data);
+
+  // Import de la clé
+  const key = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  // Signature
+  const signature = await crypto.subtle.sign("HMAC", key, messageData);
+
+  // Conversion en hexadécimal
+  return Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .substring(0, 16); // 16 premiers caractères pour réduire la taille du QR
+}
+
+/**
+ * Génère les données sécurisées pour le QR code
+ */
+async function generateSecureQRData(marchand: Marchand): Promise<string> {
+  const merchantData = {
+    id: marchand.id,
+    nom: `${marchand.nom.toUpperCase()} ${marchand.prenom}`,
+    cin: marchand.numCIN,
+    tel: marchand.numTel1 || "-",
+    activite: marchand.activite || "-",
+    place: marchand.places?.[0]?.nom || "Non assignée",
+    marche: marchand.places?.[0]?.marcheeName || "-",
+    zone: marchand.places?.[0]?.zoneName || "-",
+    hall: marchand.places?.[0]?.salleName || "-",
+    categorie: marchand.places?.[0]?.categorieName || "-",
+    date: formatDate(marchand.dateEnregistrement),
+  };
+
+  const dataString = JSON.stringify(merchantData);
+  const signature = await generateSignature(dataString);
+
+  // Structure finale avec versioning et timestamp
+  return JSON.stringify({
+    v: "1.0", // Version du format
+    data: merchantData,
+    sig: signature,
+    ts: Date.now(), // Timestamp pour traçabilité
+  });
+}
 
 // =============================
 // INTERFACES
@@ -43,24 +109,16 @@ const formatDate = (d?: string) =>
   d ? new Date(d).toLocaleDateString("fr-FR") : "Non renseignée";
 
 // =====================================================================
-// ⚡⚡⚡ COMPOSANT HD — CARTE 3150 × 4440 px (VERSION IMPRESSION EXPORT)
+// ⚡ COMPOSANT HD — CARTE 3150 × 4440 px (VERSION IMPRESSION EXPORT)
 // =====================================================================
 const MerchantCardHD: React.FC<{
   marchand: Marchand;
   templateUrl: string;
-}> = ({ marchand, templateUrl }) => {
-  const qrData = JSON.stringify({
-    id: marchand.id,
-    nom: `${marchand.nom.toUpperCase()} ${marchand.prenom}`,
-    cin: marchand.numCIN,
-    tel: marchand.numTel1 || "-",
-    activite: marchand.activite || "-",
-    place: marchand.places?.[0]?.nom || "Non assignée",
-    marche: marchand.places?.[0]?.marcheeName || "-",
-    zone: marchand.places?.[0]?.zoneName || "-",
-    hall: marchand.places?.[0]?.salleName || "-",
-    date: formatDate(marchand.dateEnregistrement),
-  });
+  secureQRData: string;
+}> = ({ marchand, templateUrl, secureQRData }) => {
+  // Extraction de la signature pour affichage
+  const qrPayload = JSON.parse(secureQRData);
+  const signature = qrPayload.sig;
 
   return (
     <div
@@ -73,9 +131,7 @@ const MerchantCardHD: React.FC<{
         fontFamily: "Arial, sans-serif",
       }}
     >
-      {/* ============================================================== */}
-      {/* NOM + PRENOM — 828 x, 1393 y — Couleur BLEUE                   */}
-      {/* ============================================================== */}
+      {/* NOM + PRENOM */}
       <div
         style={{
           position: "absolute",
@@ -88,12 +144,10 @@ const MerchantCardHD: React.FC<{
           textShadow: "3px 3px 8px rgba(253, 253, 253, 1)",
         }}
       >
-        {marchand.nom.toUpperCase()} {marchand.prenom.toUpperCase()}
+        {marchand.nom.toUpperCase()}
       </div>
 
-      {/* ============================================================== */}
-      {/* Marche — 1242 x, 2037 y — Noir                               */}
-      {/* ============================================================== */}
+      {/* MARCHE */}
       <div
         style={{
           position: "absolute",
@@ -101,16 +155,13 @@ const MerchantCardHD: React.FC<{
           top: "1380px",
           fontSize: "120px",
           fontWeight: "bold",
-          textTransform: "uppercase",
           color: "#000",
         }}
       >
-         { marchand.places?.[0]?.marcheeName || "-"}
+        {marchand.places?.[0]?.marcheeName || "-"}
       </div>
 
-      {/* ============================================================== */}
-      {/* Place — 1242 x, 2037 y — Noir                               */}
-      {/* ============================================================== */}
+      {/* PLACE */}
       <div
         style={{
           position: "absolute",
@@ -118,16 +169,13 @@ const MerchantCardHD: React.FC<{
           top: "1680px",
           fontSize: "120px",
           fontWeight: "bold",
-          textTransform: "uppercase",
           color: "#000",
         }}
       >
-         { marchand.places?.[0]?.nom+"-"+marchand.places?.[0]?.salleName || "-"}
+        {marchand.places?.[0]?.nom + "-" + marchand.places?.[0]?.salleName || "-"}
       </div>
 
-      {/* ============================================================== */}
-      {/* ACTIVITE — 1242 x, 2037 y — Noir                               */}
-      {/* ============================================================== */}
+      {/* ACTIVITE */}
       <div
         style={{
           position: "absolute",
@@ -135,16 +183,13 @@ const MerchantCardHD: React.FC<{
           top: "2030px",
           fontSize: "120px",
           fontWeight: "bold",
-          textTransform: "uppercase",
           color: "#000",
         }}
       >
-         {marchand.activite || "-"}
+        {marchand.activite || "-"}
       </div>
 
-      {/* ============================================================== */}
-      {/* CIN — 1242 x, 2037 y — Noir                               */}
-      {/* ============================================================== */}
+      {/* CIN */}
       <div
         style={{
           position: "absolute",
@@ -152,16 +197,13 @@ const MerchantCardHD: React.FC<{
           top: "2300px",
           fontSize: "120px",
           fontWeight: "bold",
-          textTransform: "uppercase",
           color: "#000",
         }}
       >
-         {marchand.numCIN || "-"}
+        {marchand.numCIN || "-"}
       </div>
 
-      {/* ============================================================== */}
-      {/* Categorie — 1242 x, 2037 y — Noir                               */}
-      {/* ============================================================== */}
+      {/* CATEGORIE */}
       <div
         style={{
           position: "absolute",
@@ -172,12 +214,10 @@ const MerchantCardHD: React.FC<{
           color: "#000",
         }}
       >
-         {marchand.places?.[0]?.categorieName || "-"}
+        {marchand.places?.[0]?.categorieName || "-"}
       </div>
 
-      {/* ============================================================== */}
-      {/* STAT — position au-dessus du NIF                               */}
-      {/* ============================================================== */}
+      {/* STAT */}
       <div
         style={{
           position: "absolute",
@@ -188,12 +228,10 @@ const MerchantCardHD: React.FC<{
           color: "#000",
         }}
       >
-       {marchand.stat || " "}
+        {marchand.stat || " "}
       </div>
-      
-      {/* ============================================================== */}
-      {/* NIF — juste sous STAT                                          */}
-      {/* ============================================================== */}
+
+      {/* NIF */}
       <div
         style={{
           position: "absolute",
@@ -204,12 +242,10 @@ const MerchantCardHD: React.FC<{
           color: "#000",
         }}
       >
-       {marchand.nif || " "}
+        {marchand.nif || " "}
       </div>
 
-      {/* ============================================================== */}
-      {/* TELEPHONE — 280 x, 3493 y — Noir                               */}
-      {/* ============================================================== */}
+      {/* TELEPHONE */}
       <div
         style={{
           position: "absolute",
@@ -220,12 +256,10 @@ const MerchantCardHD: React.FC<{
           color: "#000",
         }}
       >
-         {marchand.numTel1 || "-"}
+        {marchand.numTel1 || "-"}
       </div>
 
-      {/* ============================================================== */}
-      {/* QR CODE — BAS DROITE — 1489 × 1393 px                           */}
-      {/* ============================================================== */}
+      {/* QR CODE SÉCURISÉ */}
       <div
         style={{
           position: "absolute",
@@ -236,48 +270,51 @@ const MerchantCardHD: React.FC<{
           background: "white",
           borderRadius: "40px",
           display: "flex",
+          flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
           overflow: "hidden",
         }}
       >
         <QRCodeSVG
-          value={qrData}
-          size={1380}
+          value={secureQRData}
+          size={1200}
           level="H"
           style={{
-            transform: "scaleX(1462 / 1380)",
+            transform: "scaleX(1.05)",
             transformOrigin: "center",
             display: "block",
           }}
         />
+        {/* Numéro de sécurité visible */}
+        <div
+          style={{
+            marginTop: "20px",
+            fontSize: "50px",
+            fontWeight: "bold",
+            color: "#333",
+            letterSpacing: "4px",
+            fontFamily: "monospace",
+          }}
+        >
+          🔒 {signature.substring(0, 8).toUpperCase()}
+        </div>
       </div>
     </div>
   );
 };
 
 // =====================================================================
-// ⚡⚡⚡ VERSION PREVIEW - MÊME STYLE QUE HD MAIS RÉDUITE
+// ⚡ VERSION PREVIEW - RÉDUITE
 // =====================================================================
 const MerchantCardPreview: React.FC<{
   marchand: Marchand;
   templateUrl: string;
-}> = ({ marchand, templateUrl }) => {
-  const qrData = JSON.stringify({
-    id: marchand.id,
-    nom: `${marchand.nom.toUpperCase()} ${marchand.prenom}`,
-    cin: marchand.numCIN,
-    tel: marchand.numTel1 || "-",
-    activite: marchand.activite || "-",
-    place: marchand.places?.[0]?.nom || "Non assignée",
-    marche: marchand.places?.[0]?.marcheeName || "-",
-    zone: marchand.places?.[0]?.zoneName || "-",
-    hall: marchand.places?.[0]?.salleName || "-",
-    date: formatDate(marchand.dateEnregistrement),
-  });
-
-  // Facteur de réduction pour l'affichage
-  const scale = 0.15; // 15% de la taille originale
+  secureQRData: string;
+}> = ({ marchand, templateUrl, secureQRData }) => {
+  const scale = 0.15;
+  const qrPayload = JSON.parse(secureQRData);
+  const signature = qrPayload.sig;
 
   return (
     <div
@@ -290,6 +327,27 @@ const MerchantCardPreview: React.FC<{
         fontFamily: "Arial, sans-serif",
       }}
     >
+      {/* Badge de sécurité */}
+      <div
+        style={{
+          position: "absolute",
+          top: "10px",
+          left: "10px",
+          background: "rgba(16, 185, 129, 0.9)",
+          color: "white",
+          padding: "4px 8px",
+          borderRadius: "6px",
+          fontSize: "10px",
+          fontWeight: "bold",
+          display: "flex",
+          alignItems: "center",
+          gap: "4px",
+        }}
+      >
+        <Shield size={12} />
+        SÉCURISÉ
+      </div>
+
       {/* NOM + PRENOM */}
       <div
         style={{
@@ -304,7 +362,7 @@ const MerchantCardPreview: React.FC<{
           lineHeight: 1,
         }}
       >
-        {marchand.nom.toUpperCase()} {marchand.prenom.toUpperCase()}
+        {marchand.nom.toUpperCase()}
       </div>
 
       {/* MARCHE */}
@@ -315,7 +373,6 @@ const MerchantCardPreview: React.FC<{
           top: `${1380 * scale}px`,
           fontSize: `${120 * scale}px`,
           fontWeight: "bold",
-          textTransform: "uppercase",
           color: "#000",
           lineHeight: 1,
         }}
@@ -331,7 +388,6 @@ const MerchantCardPreview: React.FC<{
           top: `${1680 * scale}px`,
           fontSize: `${120 * scale}px`,
           fontWeight: "bold",
-          textTransform: "uppercase",
           color: "#000",
           lineHeight: 1,
         }}
@@ -347,7 +403,6 @@ const MerchantCardPreview: React.FC<{
           top: `${2030 * scale}px`,
           fontSize: `${120 * scale}px`,
           fontWeight: "bold",
-          textTransform: "uppercase",
           color: "#000",
           lineHeight: 1,
         }}
@@ -363,7 +418,6 @@ const MerchantCardPreview: React.FC<{
           top: `${2300 * scale}px`,
           fontSize: `${120 * scale}px`,
           fontWeight: "bold",
-          textTransform: "uppercase",
           color: "#000",
           lineHeight: 1,
         }}
@@ -431,7 +485,7 @@ const MerchantCardPreview: React.FC<{
         {marchand.numTel1 || "-"}
       </div>
 
-      {/* QR CODE */}
+      {/* QR CODE SÉCURISÉ */}
       <div
         style={{
           position: "absolute",
@@ -442,28 +496,41 @@ const MerchantCardPreview: React.FC<{
           background: "white",
           borderRadius: `${40 * scale}px`,
           display: "flex",
+          flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
           overflow: "hidden",
         }}
       >
         <QRCodeSVG
-          value={qrData}
-          size={1380 * scale}
+          value={secureQRData}
+          size={180}
           level="H"
           style={{
-            transform: `scaleX(${1462 / 1380})`,
+            transform: `scaleX(1.05)`,
             transformOrigin: "center",
             display: "block",
           }}
         />
+        <div
+          style={{
+            marginTop: "4px",
+            fontSize: "8px",
+            fontWeight: "bold",
+            color: "#333",
+            letterSpacing: "1px",
+            fontFamily: "monospace",
+          }}
+        >
+          🔒 {signature.substring(0, 8).toUpperCase()}
+        </div>
       </div>
     </div>
   );
 };
 
 // =====================================================================
-//   ⚡⚡⚡ COMPOSANT PRINCIPAL AVEC CARTE CENTRÉE
+// ⚡ COMPOSANT PRINCIPAL
 // =====================================================================
 const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
   marchands,
@@ -472,13 +539,26 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
   const [selectedIds, setSelectedIds] = useState<number[]>(
     marchands.map((m) => m.id)
   );
-
   const [template, setTemplate] = useState("/carte-bazarykely.png");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [qrDataMap, setQrDataMap] = useState<Record<number, string>>({});
+  const [isGeneratingQR, setIsGeneratingQR] = useState(true);
 
   const selected = marchands.filter((m) => selectedIds.includes(m.id));
 
-  // Selection
+  // Génération des QR codes sécurisés au montage
+  React.useEffect(() => {
+    const generateAllQR = async () => {
+      const map: Record<number, string> = {};
+      for (const marchand of marchands) {
+        map[marchand.id] = await generateSecureQRData(marchand);
+      }
+      setQrDataMap(map);
+      setIsGeneratingQR(false);
+    };
+    generateAllQR();
+  }, [marchands]);
+
   const toggle = (id: number) =>
     setSelectedIds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
@@ -487,15 +567,14 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
       selectedIds.length === marchands.length ? [] : marchands.map((m) => m.id)
     );
 
-  // Téléchargement multiple
   const downloadSelected = async () => {
     if (selected.length === 0) return;
-    
+
     setIsDownloading(true);
-    
+
     try {
       const html2canvas = (await import("html2canvas")).default;
-      
+
       for (const marchand of selected) {
         const el = document.getElementById(`card-hd-${marchand.id}`);
         if (!el) continue;
@@ -508,14 +587,15 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
         });
 
         const a = document.createElement("a");
-        a.download = `CARTE_${marchand.nom}_${marchand.prenom}_${String(marchand.id).padStart(4, "0")}.png`;
+        a.download = `CARTE_SECURISEE_${marchand.nom}_${marchand.prenom}_${String(
+          marchand.id
+        ).padStart(4, "0")}.png`;
         a.href = canvas.toDataURL("image/png");
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        
-        // Petit délai entre chaque téléchargement
-        await new Promise(resolve => setTimeout(resolve, 300));
+
+        await new Promise((resolve) => setTimeout(resolve, 300));
       }
     } catch (error) {
       console.error("Erreur lors du téléchargement:", error);
@@ -540,17 +620,40 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
     );
   }
 
+  if (isGeneratingQR) {
+    return (
+      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+        <div className="bg-white p-12 rounded-2xl text-center">
+          <Shield className="w-16 h-16 text-blue-600 mx-auto mb-4 animate-pulse" />
+          <p className="text-xl font-bold text-gray-800">
+            Génération des QR codes sécurisés...
+          </p>
+          <p className="text-sm text-gray-600 mt-2">
+            Création des signatures cryptographiques
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {/* MODAL AVEC CARTE CENTRÉE */}
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col">
           {/* HEADER */}
           <div className="flex justify-between items-center p-6 border-b">
             <div>
-              <h2 className="text-2xl font-bold text-gray-800">Générer les cartes</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Générer les cartes
+                </h2>
+                <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full flex items-center gap-1">
+                  <Shield size={14} />
+                  SÉCURISÉ
+                </span>
+              </div>
               <p className="text-sm text-gray-600 mt-1">
-                {selected.length} carte(s) sélectionnée(s) sur {marchands.length}
+                {selected.length} carte(s) avec QR code authentifié sur {marchands.length}
               </p>
             </div>
 
@@ -559,7 +662,9 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
                 onClick={toggleAll}
                 className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                {selected.length === marchands.length ? "Tout désélectionner" : "Tout sélectionner"}
+                {selected.length === marchands.length
+                  ? "Tout désélectionner"
+                  : "Tout sélectionner"}
               </button>
 
               <button
@@ -591,17 +696,21 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
                 className="px-6 py-3 bg-green-600 text-white rounded-lg flex items-center gap-2 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
               >
                 <Download size={20} />
-                {isDownloading ? "Téléchargement..." : `Télécharger ${selected.length} carte(s)`}
+                {isDownloading
+                  ? "Téléchargement..."
+                  : `Télécharger ${selected.length} carte(s)`}
               </button>
             </div>
           </div>
 
-          {/* ZONE DE PREVIEW CENTRÉE */}
+          {/* PREVIEW */}
           <div className="flex-1 overflow-y-auto p-8">
             <div className="flex flex-col items-center space-y-8">
               {marchands.map((m) => (
-                <div key={m.id} className="relative w-full flex flex-col items-center">
-                  {/* BOUTON SELECTION */}
+                <div
+                  key={m.id}
+                  className="relative w-full flex flex-col items-center"
+                >
                   <button
                     onClick={() => toggle(m.id)}
                     className={`absolute -top-4 -left-4 z-10 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all ${
@@ -613,20 +722,26 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
                     {selectedIds.includes(m.id) && <Check size={24} />}
                   </button>
 
-                  {/* CARTE CENTRÉE */}
                   <div className="flex flex-col items-center">
-                    <MerchantCardPreview marchand={m} templateUrl={template} />
-                    
-                    {/* INFORMATIONS DU MARCHAND */}
+                    <MerchantCardPreview
+                      marchand={m}
+                      templateUrl={template}
+                      secureQRData={qrDataMap[m.id]}
+                    />
+
                     <div className="mt-4 text-center">
                       <p className="font-semibold text-gray-800 text-lg">
                         {m.nom} {m.prenom}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {m.places?.[0]?.marcheeName || "Non assigné"} • {m.activite || "Non spécifié"}
+                        {m.places?.[0]?.marcheeName || "Non assigné"} •{" "}
+                        {m.activite || "Non spécifié"}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         CIN: {m.numCIN} • Tél: {m.numTel1 || "Non renseigné"}
+                      </p>
+                      <p className="text-xs text-green-600 mt-2 font-mono">
+                        🔒 Signature: {JSON.parse(qrDataMap[m.id]).sig.substring(0, 8).toUpperCase()}
                       </p>
                     </div>
                   </div>
@@ -637,13 +752,14 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
         </div>
       </div>
 
-      {/* CARTES HD INVISIBLES POUR EXPORT */}
+      {/* CARTES HD INVISIBLES */}
       <div style={{ position: "absolute", top: "-99999px", left: "-99999px" }}>
         {marchands.map((m) => (
           <MerchantCardHD
             key={`hd-${m.id}`}
             marchand={m}
             templateUrl={template}
+            secureQRData={qrDataMap[m.id]}
           />
         ))}
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import API_BASE_URL from "@/services/APIbaseUrl";
 import React, { useState, useEffect } from "react";
 
 interface Categorie {
@@ -66,7 +67,7 @@ const AddPlaceModal: React.FC<AddPlaceModalProps> = ({
   const fetchCategories = async () => {
     try {
       setLoadingCategories(true);
-      const response = await fetch("http://localhost:8080/api/public/categories");
+      const response = await fetch(`${API_BASE_URL}/public/categories`);
       if (response.ok) {
         const data = await response.json();
         setCategories(data);
@@ -173,7 +174,7 @@ const AddPlaceModal: React.FC<AddPlaceModalProps> = ({
 
       const promises = namesToCreate.map((name) => {
         const payload = { ...basePayload, nom: name };
-        return fetch("http://localhost:8080/api/public/places", {
+        return fetch(`${API_BASE_URL}/public/places`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

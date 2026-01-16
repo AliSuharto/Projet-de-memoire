@@ -102,6 +102,11 @@ export const NAVIGATION_CONFIG = {
       icon: Home,
       label: "Accueil"
     },
+     {
+      href: "/dashboard/ordo/recettes",
+      icon: Database,
+      label: "Recettes"
+    },
     {
       href: "/dashboard/ordo/configuration",
       icon: Settings,
@@ -132,11 +137,7 @@ export const NAVIGATION_CONFIG = {
       icon: ShoppingCart,
       label: "Marchés"
     },
-    {
-      href: "/dashboard/ordo/marchands",
-      icon: Users,
-      label: "Marchands"
-    },
+   
     {
       href: "/dashboard/ordo/rapports",
       icon: FileText,
@@ -187,8 +188,9 @@ export const NAVIGATION_CONFIG = {
     {
       href: "/dashboard/perp/parametres",
       icon: Settings,
-      label: "Paramètres"
-    }
+      label: "Paramètresss"
+    },
+    
   ] as UnifiedNavItem[],
 
   ORDONNATEUR: [
@@ -196,6 +198,11 @@ export const NAVIGATION_CONFIG = {
       href: "/dashboard/ordo",
       icon: Home,
       label: "Accueil"
+    },
+    {
+      href: "/dashboard/ordo/recettes",
+      icon: Database,
+      label: "Recettes"
     },
     {
       href: "/dashboard/ordo/marches",
@@ -370,7 +377,7 @@ REGISSEUR_PRINCIPAL: [
       label: " Valider les sessions"
     },
     {
-      href: "/dashboard/regisseur-principal/regisseurs",
+      href: "/dashboard/regisseur_principal/regisseurs",
       icon: CreditCard,
       label: "Agents recouvreurs"
     },
@@ -456,18 +463,19 @@ REGISSEUR: [
       icon: CreditCard,
       label: "Paiements"
     },
-    {
-      href: "/dashboard/regisseur/quittances",
-      icon: FileText,
-      label: "Quittances"
-    },
+    
     {
       href: "/dashboard/regisseur/sessions",
       icon: Calendar,
       label: "Sessions"
     },
     {
-      href: "/dashboard/regisseur/parametres",
+      href: "/dashboard/regisseur/quittances",
+      icon: FileText,
+      label: "Quittances"
+    },
+    {
+      href: "/dashboard/regisseur/recu",
       icon: Settings,
       label: "Recus"
     }

@@ -18,6 +18,7 @@ export interface LoginResponse {
       id?: string;
       email: string;
       nom: string;
+      role?: string;
       prenom?: string;
       photoUrl?: string;
       telephone?: string;

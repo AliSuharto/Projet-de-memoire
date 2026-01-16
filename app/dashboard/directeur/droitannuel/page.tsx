@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Save, X, Search, DollarSign } from 'lucide-react';
+import API_BASE_URL from '@/services/APIbaseUrl';
 
 interface DroitAnnuel {
   id?: number;
@@ -9,7 +10,6 @@ interface DroitAnnuel {
   dateCreation?: string;
 }
 
-const API_BASE_URL = 'http://localhost:8080/api/public/droits-annuels';
 
 export default function DroitsAnnuelsApp() {
   const [droits, setDroits] = useState<DroitAnnuel[]>([]);
@@ -48,7 +48,7 @@ const formatDate = (dateString: string): string => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(API_BASE_URL);
+      const response = await fetch(`${API_BASE_URL}/public/droits-annuels`);
       if (!response.ok) throw new Error('Erreur lors du chargement');
       const data = await response.json();
       setDroits(data);
@@ -87,8 +87,8 @@ const formatDate = (dateString: string): string => {
 
     try {
       const url = editingDroit 
-        ? `${API_BASE_URL}/${editingDroit.id}` 
-        : API_BASE_URL;
+        ? `${API_BASE_URL}/public/droits-annuels/${editingDroit.id}` 
+        : `${API_BASE_URL}/public/droits-annuels`;
       
       const method = editingDroit ? 'PUT' : 'POST';
 
@@ -117,7 +117,7 @@ const formatDate = (dateString: string): string => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/public/droits-annuels/${id}`, {
         method: 'DELETE',
       });
 

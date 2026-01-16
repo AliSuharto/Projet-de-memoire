@@ -33,6 +33,7 @@ interface Place {
   dateDebutOccupation?: string;
   dateFinOccupation?: string | null;
   marcheeName?: string;
+  montant?: number | null;
   zoneName?: string | null;
   salleName?: string | null;
 }
@@ -308,13 +309,13 @@ const MarchandDetailView: React.FC<{
                   {hasPlace && places.length > 0 && (
                     <span className="flex items-center">
                       <MapPin size={16} className="mr-1" />
-                      Place {places[0].nom}
+                      Place {places[0].nom}, 
+                      Zone {places[0].zoneName ? ` - ${places[0].zoneName}` : ''},
+                      Hall {places[0].salleName ? ` - ${places[0].salleName}` : ''}
+                      et marchee {places[0].marcheeName ? ` - ${places[0].marcheeName}` : ''}
                     </span>
                   )}
-                  <span className="flex items-center">
-                    <Calendar size={16} className="mr-1" />
-                    Depuis {formatShortDate(marchand.dateEnregistrement)}
-                  </span>
+                  
                 </div>
               </div>
             </div>
@@ -334,18 +335,19 @@ const MarchandDetailView: React.FC<{
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <StatCard 
-            icon={MapPin}
-            label="Places Occupées"
-            value={places.length}
-            subValue={hasPlace ? "Place attribuée" : "Aucune place"}
-            color={hasPlace ? "#10b981" : "#6b7280"}
-          />
+          
           <StatCard 
             icon={Calendar}
-            label="Date d'Entrée"
-            value={formatShortDate(marchand.dateEnregistrement)}
-            subValue="Date d'enregistrement"
+            label="Date debut de contrat"
+            value={formatShortDate(places[0]?.dateDebutOccupation)}
+            subValue=""
+            color="#3b82f6"
+          />
+          <StatCard 
+            icon={TrendingUp}
+            label="Catégorie"
+            value={places[0]?.categorieName}
+            subValue={`montant: ${places[0]?.montant }Ar`}
             color="#3b82f6"
           />
           <StatCard 

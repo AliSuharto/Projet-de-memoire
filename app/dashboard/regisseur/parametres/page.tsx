@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
 import { ArrowUpDown, Eye, ArrowLeft, X, Search, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import API_BASE_URL from '@/services/APIbaseUrl';
 // Types
 interface Place {
 nom: string;
@@ -68,7 +69,7 @@ useEffect(() => {
 const fetchData = async () => {
 try {
 setLoading(true);
-const response = await fetch('http://localhost:8080/api/contrat/contrats-actifs');
+const response = await fetch(`${API_BASE_URL}/contrat/contrats-actifs`);
 if (!response.ok) {
 throw new Error('Erreur lors du chargement des données');
 }
@@ -523,7 +524,7 @@ useEffect(() => {
 const fetchPaiements = async () => {
 try {
 setLoading(true);
-const response = await fetch(`http://localhost:8080/api/paiements/marchand/${marchand.id}`);
+const response = await fetch(`${API_BASE_URL}/paiements/marchand/${marchand.id}`);
 if (!response.ok) {
 throw new Error('Erreur lors du chargement des paiements');
 }

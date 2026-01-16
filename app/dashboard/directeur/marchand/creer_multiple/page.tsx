@@ -21,6 +21,9 @@ type MarchandForm = {
   numTel2?: string;
   adress?: string;
   description?: string;
+  activite?: string;
+
+
 };
 
 type TabType = 'individual' | 'batch';
@@ -141,38 +144,54 @@ export default function MarchandsPage() {
   };
 
   const handleBatchSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!excelFile) {
-      setMessageBatch("Veuillez sélectionner un fichier Excel (.xlsx ou .xls)");
-      return;
+  e.preventDefault();
+  if (!excelFile) {
+    setMessageBatch("Veuillez sélectionner un fichier Excel (.xlsx ou .xls)");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", excelFile);
+
+  try {
+    setLoadingBatch(true);
+    setProgressBatch(0);
+    setMessageBatch(null);
+
+    const response = await axios.post(`${API_BASE_URL}/public/marchands/import/excel`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setProgressBatch(percent);
+        }
+      },
+    });
+
+    // Si le backend renvoie success: true → on affiche un message clair et joli
+    if (response.data?.success === true || response.status === 200) {
+      setMessageBatch("Votre importation a bien été effectuée avec succès !");
+    } else {
+      // Cas improbable mais on garde le message du backend
+      setMessageBatch(response.data?.message || "Importation terminée (voir détails)");
     }
 
-    const formData = new FormData();
-    formData.append("file", excelFile);
+    resetBatchForm();
+  } catch (error: any) {
+    const backendMsg = error.response?.data?.message;
+    const defaultMsg = "Erreur lors de l'importation du fichier";
 
-    try {
-      setLoadingBatch(true);
-      setProgressBatch(0);
-      setMessageBatch(null);
-
-      const response = await axios.post(`${API_BASE_URL}/public/marchands/import/excel`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setProgressBatch(percent);
-          }
-        },
-      });
-
-      setMessageBatch(response.data.message);
-      resetBatchForm();
-    } catch (error: any) {
-      setMessageBatch(error.response?.data?.message || "Erreur lors de l'importation");
-    } finally {
-      setLoadingBatch(false);
+    // Si le backend renvoie des erreurs détaillées (ex: lignes en erreur)
+    if (backendMsg && typeof backendMsg === "string" && backendMsg.includes("échoué")) {
+      setMessageBatch(backendMsg);
+    } else {
+      setMessageBatch(defaultMsg);
     }
-  };
+  } finally {
+    setLoadingBatch(false);
+    setProgressBatch(0); // Réinitialise la barre même en cas d'erreur
+  }
+};
 
   // Composant Tab
   const Tab = ({ id, label, active, onClick }: { id: TabType; label: string; active: boolean; onClick: (id: TabType) => void }) => (
@@ -227,7 +246,7 @@ export default function MarchandsPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label htmlFor="nom" className="block text-sm font-medium text-gray-700 mb-2">
-                      Nom <span className="text-red-600">*</span>
+                      Nom et Prénom <span className="text-red-600">*</span>
                     </label>
                     <input
                       id="nom"
@@ -278,7 +297,7 @@ export default function MarchandsPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label htmlFor="numTel1" className="block text-sm font-medium text-gray-700 mb-2">
-                      Téléphone 1
+                      Téléphone
                     </label>
                     <input
                       id="numTel1"
@@ -292,16 +311,16 @@ export default function MarchandsPage() {
                   </div>
                   <div>
                     <label htmlFor="numTel2" className="block text-sm font-medium text-gray-700 mb-2">
-                      Téléphone 2
+                      Activité 
                     </label>
                     <input
                       id="numTel2"
                       name="numTel2"
-                      type="tel"
+                      type="text"
                       value={form.numTel2 || ''}
                       onChange={handleChange}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Ex: 0339876543"
+                      placeholder="Boucher, Épicier, etc."
                     />
                   </div>
                 </div>

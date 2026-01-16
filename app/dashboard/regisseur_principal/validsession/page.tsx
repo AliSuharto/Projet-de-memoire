@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { X, CheckCircle, AlertCircle, Calendar, User, Wallet, FileText, Clock } from 'lucide-react';
+import API_BASE_URL from '@/services/APIbaseUrl';
 
 interface Paiement {
   id: number;
@@ -47,7 +48,7 @@ export default function SessionValidationPage() {
   const fetchSessions = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("http://localhost:8080/api/sessions/validationEnAttente");
+      const res = await axios.get(`${API_BASE_URL}/sessions/validationEnAttente`);
       const formatted = (res.data || []).map((s: SessionData) => ({
         ...s,
         paiements: s.paiements || []
@@ -92,7 +93,7 @@ export default function SessionValidationPage() {
     setValidating(selectedSession.id);
 
     try {
-      await axios.post("http://localhost:8080/api/sessions/validate", {
+      await axios.post(`${API_BASE_URL}/sessions/validate`, {
         id: selectedSession.id,
         id_regisseurPrincipal: userId
       });

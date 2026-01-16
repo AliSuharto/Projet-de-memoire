@@ -2,6 +2,7 @@
 
 import React, { useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import API_BASE_URL from '@/services/APIbaseUrl';
 
 /**
  * Simple Next.js (App Router) page for creating a Marchand with multipart/form-data
@@ -16,8 +17,7 @@ import axios from 'axios';
  *   POST /api/marchands  (consumes multipart/form-data)
  */
 
-// Utility: read env base URL safely
-const API_BASE_URL =  'http://localhost:8080/api';
+
 
 // Very light client-side validation
 type MarchandForm = {

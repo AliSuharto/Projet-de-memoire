@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { AlertCircle, CheckCircle, Receipt, ChevronDown, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastContainer';
+import API_BASE_URL from '@/services/APIbaseUrl';
 
 // Schéma de validation avec Zod
 const formSchema = z.object({
@@ -89,7 +90,7 @@ export default function QuittancePlageForm() {
           return;
         }
 
-        const response = await fetch('http://localhost:8080/api/users', {
+        const response = await fetch(`${API_BASE_URL}/public/users`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -152,7 +153,7 @@ export default function QuittancePlageForm() {
     setSubmitting(true);
 
     try {
-      const response = await fetch('http://localhost:8080/api/quittance-plage', {
+      const response = await fetch(`${API_BASE_URL}/quittance-plage`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
