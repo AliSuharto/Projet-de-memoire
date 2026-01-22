@@ -6,7 +6,6 @@ import { ChevronDown, ChevronUp, Building2, Home, MapPin, Users, TrendingUp, Arr
 import API_BASE_URL from '@/services/APIbaseUrl';
 import { CreateHallModal, CreatePlaceModal, CreateZoneModal } from '@/components/(Directeur)/CreateModal';
 
-
 // Types
 interface Place {
   id: number;

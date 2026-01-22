@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Download, Check, Shield } from "lucide-react";
+import { X, Download, Check, Shield, ChevronDown } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 // =============================
@@ -222,7 +222,7 @@ const MerchantCardHD: React.FC<{
         style={{
           position: "absolute",
           left: "280px",
-          top: "3300px",
+          top: "2955px",
           fontSize: "160px",
           fontWeight: "bold",
           color: "#000",
@@ -236,7 +236,7 @@ const MerchantCardHD: React.FC<{
         style={{
           position: "absolute",
           left: "280px",
-          top: "3400px",
+          top: "2655px",
           fontSize: "160px",
           fontWeight: "semi-bold",
           color: "#000",
@@ -312,13 +312,13 @@ const MerchantCardPreview: React.FC<{
   templateUrl: string;
   secureQRData: string;
 }> = ({ marchand, templateUrl, secureQRData }) => {
-  const scale = 0.15;
+  const scale = 0.11;
   const qrPayload = JSON.parse(secureQRData);
   const signature = qrPayload.sig;
 
   return (
     <div
-      className="relative bg-white rounded-xl shadow-2xl overflow-hidden border-8 border-white"
+      className="relative bg-white rounded-xl shadow-2xl overflow-hidden"
       style={{
         width: `${3150 * scale}px`,
         height: `${4440 * scale}px`,
@@ -445,7 +445,7 @@ const MerchantCardPreview: React.FC<{
         style={{
           position: "absolute",
           left: `${280 * scale}px`,
-          top: `${3300 * scale}px`,
+          top: `${2950 * scale}px`,
           fontSize: `${160 * scale}px`,
           fontWeight: "bold",
           color: "#000",
@@ -460,7 +460,7 @@ const MerchantCardPreview: React.FC<{
         style={{
           position: "absolute",
           left: `${280 * scale}px`,
-          top: `${3400 * scale}px`,
+          top: `${2650 * scale}px`,
           fontSize: `${160 * scale}px`,
           fontWeight: 600,
           color: "#000",
@@ -504,7 +504,7 @@ const MerchantCardPreview: React.FC<{
       >
         <QRCodeSVG
           value={secureQRData}
-          size={180}
+          size={130}
           level="H"
           style={{
             transform: `scaleX(1.05)`,
@@ -514,11 +514,11 @@ const MerchantCardPreview: React.FC<{
         />
         <div
           style={{
-            marginTop: "4px",
-            fontSize: "8px",
+            marginTop: "3px",
+            fontSize: "6px",
             fontWeight: "bold",
             color: "#333",
-            letterSpacing: "1px",
+            letterSpacing: "0.5px",
             fontFamily: "monospace",
           }}
         >
@@ -543,8 +543,11 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [qrDataMap, setQrDataMap] = useState<Record<number, string>>({});
   const [isGeneratingQR, setIsGeneratingQR] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [resolution, setResolution] = useState<"high" | "standard">("high");
 
   const selected = marchands.filter((m) => selectedIds.includes(m.id));
+  const currentMarchand = marchands[currentIndex];
 
   // Génération des QR codes sécurisés au montage
   React.useEffect(() => {
@@ -638,115 +641,215 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col">
-          {/* HEADER */}
-          <div className="flex justify-between items-center p-6 border-b">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Générer les cartes
-                </h2>
-                <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full flex items-center gap-1">
-                  <Shield size={14} />
-                  SÉCURISÉ
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 mt-1">
-                {selected.length} carte(s) avec QR code authentifié sur {marchands.length}
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl max-h-[95vh] flex overflow-hidden">
+          {/* COLONNE GAUCHE - PREVIEW */}
+          <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100 p-12 flex flex-col items-center justify-center">
+            <div className="mb-6">
+              <p className="text-sm text-slate-600 italic text-center">
+                Aperçu en direct : Votre carte d'identité numérique
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col items-center">
+              <MerchantCardPreview
+                marchand={currentMarchand}
+                templateUrl={template}
+                secureQRData={qrDataMap[currentMarchand.id]}
+              />
+
+              {/* Info marchand sous la carte */}
+              <div className="mt-6 text-center bg-white px-6 py-4 rounded-xl shadow-md">
+                <p className="font-bold text-gray-800 text-base">
+                  {currentMarchand.nom} {currentMarchand.prenom}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  ID Marchand: #{String(currentMarchand.id).padStart(4, "0")}
+                </p>
+                <p className="text-xs text-green-600 mt-2 font-mono">
+                  🔒 {JSON.parse(qrDataMap[currentMarchand.id]).sig.substring(0, 8).toUpperCase()}
+                </p>
+              </div>
+
+              {/* Navigation entre les marchands */}
+              {marchands.length > 1 && (
+                <div className="flex items-center gap-3 mt-6">
+                  <button
+                    onClick={() => setCurrentIndex((p) => Math.max(0, p - 1))}
+                    disabled={currentIndex === 0}
+                    className="px-4 py-2 bg-white text-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all"
+                  >
+                    ← Précédent
+                  </button>
+                  <span className="text-sm text-gray-600 font-medium">
+                    {currentIndex + 1} / {marchands.length}
+                  </span>
+                  <button
+                    onClick={() => setCurrentIndex((p) => Math.min(marchands.length - 1, p + 1))}
+                    disabled={currentIndex === marchands.length - 1}
+                    className="px-4 py-2 bg-white text-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all"
+                  >
+                    Suivant →
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* COLONNE DROITE - SETTINGS */}
+          <div className="w-[420px] bg-white flex flex-col">
+            {/* Header */}
+            <div className="p-6 border-b">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Aperçu de votre carte marchand
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Vérifiez votre design et choisissez un format.
+                  </p>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={24} className="text-gray-600" />
+                </button>
+              </div>
+            </div>
+
+            {/* Body - Settings */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* PARAMÈTRES D'EXPORT */}
+              <div>
+                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4">
+                  Paramètres d'export
+                </h3>
+
+                {/* Format de fichier */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Format de fichier
+                  </label>
+                  <div className="relative">
+                    <select className="w-full px-4 py-3 border border-gray-300 rounded-xl appearance-none bg-white text-sm font-medium text-gray-700 cursor-pointer hover:border-gray-400 transition-colors">
+                      <option>Portable Network Graphics (PNG)</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={20} />
+                  </div>
+                </div>
+
+                {/* Résolution */}
+                <div className="space-y-3 mt-6">
+                  <label className="text-sm font-medium text-gray-700">
+                    Résolution
+                  </label>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setResolution("high")}
+                      className={`flex-1 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
+                        resolution === "high"
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+                      }`}
+                    >
+                      Haute (300 DPI)
+                    </button>
+                    <button
+                      onClick={() => setResolution("standard")}
+                      className={`flex-1 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
+                        resolution === "standard"
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+                      }`}
+                    >
+                      Standard (72 DPI)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Info SVG */}
+                <div className="mt-6 p-4 bg-blue-50 rounded-xl flex gap-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">i</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-blue-800 leading-relaxed">
+                    Les formats vectoriels (SVG) sont recommandés pour l'impression professionnelle et les supports de branding.
+                  </p>
+                </div>
+              </div>
+
+              {/* Sélection des cartes */}
+              <div className="pt-6 border-t">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+                    Cartes sélectionnées
+                  </h3>
+                  <button
+                    onClick={toggleAll}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    {selectedIds.length === marchands.length ? "Tout désélectionner" : "Tout sélectionner"}
+                  </button>
+                </div>
+
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {marchands.map((m) => (
+                    <label
+                      key={m.id}
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(m.id)}
+                        onChange={() => toggle(m.id)}
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {m.nom} {m.prenom}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          #{String(m.id).padStart(4, "0")}
+                        </p>
+                      </div>
+                      <Check
+                        size={16}
+                        className={`flex-shrink-0 ${
+                          selectedIds.includes(m.id) ? "text-green-600" : "text-transparent"
+                        }`}
+                      />
+                    </label>
+                  ))}
+                </div>
+
+                <p className="text-xs text-gray-500 mt-3">
+                  {selected.length} carte(s) sélectionnée(s)
+                </p>
+              </div>
+            </div>
+
+            {/* Footer - Actions */}
+            <div className="p-6 border-t space-y-3">
               <button
-                onClick={toggleAll}
-                className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                onClick={downloadSelected}
+                disabled={isDownloading || selected.length === 0}
+                className="w-full py-4 bg-blue-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-lg hover:shadow-xl"
               >
-                {selected.length === marchands.length
-                  ? "Tout désélectionner"
-                  : "Tout sélectionner"}
+                <Download size={20} />
+                {isDownloading
+                  ? "Téléchargement en cours..."
+                  : "Télécharger maintenant"}
               </button>
 
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="w-full py-3 text-gray-600 hover:text-gray-800 font-medium transition-colors"
               >
-                <X size={24} />
+                Annuler et retourner
               </button>
-            </div>
-          </div>
-
-          {/* CONTROLES */}
-          <div className="p-4 bg-blue-50 border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-gray-700">Template:</span>
-                <input
-                  type="text"
-                  value={template}
-                  onChange={(e) => setTemplate(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-80"
-                  placeholder="URL du template de carte"
-                />
-              </div>
-
-              <button
-                onClick={downloadSelected}
-                disabled={isDownloading || selected.length === 0}
-                className="px-6 py-3 bg-green-600 text-white rounded-lg flex items-center gap-2 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
-              >
-                <Download size={20} />
-                {isDownloading
-                  ? "Téléchargement..."
-                  : `Télécharger ${selected.length} carte(s)`}
-              </button>
-            </div>
-          </div>
-
-          {/* PREVIEW */}
-          <div className="flex-1 overflow-y-auto p-8">
-            <div className="flex flex-col items-center space-y-8">
-              {marchands.map((m) => (
-                <div
-                  key={m.id}
-                  className="relative w-full flex flex-col items-center"
-                >
-                  <button
-                    onClick={() => toggle(m.id)}
-                    className={`absolute -top-4 -left-4 z-10 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all ${
-                      selectedIds.includes(m.id)
-                        ? "bg-green-500 text-white border-2 border-white"
-                        : "bg-white border-2 border-gray-400"
-                    }`}
-                  >
-                    {selectedIds.includes(m.id) && <Check size={24} />}
-                  </button>
-
-                  <div className="flex flex-col items-center">
-                    <MerchantCardPreview
-                      marchand={m}
-                      templateUrl={template}
-                      secureQRData={qrDataMap[m.id]}
-                    />
-
-                    <div className="mt-4 text-center">
-                      <p className="font-semibold text-gray-800 text-lg">
-                        {m.nom} {m.prenom}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {m.places?.[0]?.marcheeName || "Non assigné"} •{" "}
-                        {m.activite || "Non spécifié"}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        CIN: {m.numCIN} • Tél: {m.numTel1 || "Non renseigné"}
-                      </p>
-                      <p className="text-xs text-green-600 mt-2 font-mono">
-                        🔒 Signature: {JSON.parse(qrDataMap[m.id]).sig.substring(0, 8).toUpperCase()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </div>

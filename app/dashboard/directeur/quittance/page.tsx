@@ -90,7 +90,7 @@ export default function QuittancePlageForm() {
           return;
         }
 
-        const response = await fetch(`${API_BASE_URL}/public/users`, {
+        const response = await fetch(`${API_BASE_URL}/users/regisseurs-percepteurs`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

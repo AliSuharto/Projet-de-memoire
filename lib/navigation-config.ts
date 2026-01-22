@@ -210,13 +210,13 @@ export const NAVIGATION_CONFIG = {
       label: "Marchés",
       subItems: [
         { 
-          href: "/dashboard/ordo/marches/liste", 
+          href: "/dashboard/ordo/marchee/liste", 
           label: "Liste des marchés",
           icon: BookOpen,
           description: "Voir tous les marchés"
         },
         { 
-          href: "/dashboard/ordo/marches/statistiques",
+          href: "/dashboard/ordo/marchee/stat",
           label: "Statistiques",
           icon: BarChart3,
           description: "Voir les performances" 
@@ -250,10 +250,9 @@ export const NAVIGATION_CONFIG = {
           description: "Créer un directeur"
         },
         { 
-          href: "/dashboard/ordo/marches/statistiques",
-          label: "Statistiques",
-          icon: BarChart3,
-          description: "Voir les performances" 
+          href: "/dashboard/ordo/changeMotdePasse",
+          label: "Changer le mot de passe",
+          description: "Modifier votre mot de passe" 
         }
       ]
     }

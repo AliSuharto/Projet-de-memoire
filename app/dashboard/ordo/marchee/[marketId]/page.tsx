@@ -2,10 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronDown, ChevronUp, Building2, Home, MapPin, Users, TrendingUp, ArrowLeft, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, Building2, Home, MapPin, Users, TrendingUp, Search, Filter, ArrowLeft, FileText, Calendar } from 'lucide-react';
 import API_BASE_URL from '@/services/APIbaseUrl';
-import { CreateHallModal, CreatePlaceModal, CreateZoneModal } from '@/components/(Directeur)/CreateModal';
-
 
 // Types
 interface Place {
@@ -101,11 +99,7 @@ const PlaceGrid: React.FC<{ places: Place[]; onPlaceClick: (place: Place) => voi
   </div>
 );
 
-const HallCard: React.FC<{ 
-  hall: Hall; 
-  onPlaceClick: (place: Place) => void;
-  onAddPlace: (hallId: number, hallName: string) => void;
-}> = ({ hall, onPlaceClick, onAddPlace }) => {
+const HallCard: React.FC<{ hall: Hall; onPlaceClick: (place: Place) => void }> = ({ hall, onPlaceClick }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const occupationPercent = Math.round((hall.placeOccupe / hall.nbrPlace) * 100);
 
@@ -147,19 +141,6 @@ const HallCard: React.FC<{
       
       {isExpanded && (
         <div className="mt-4 pl-2">
-          <div className="flex items-center justify-between mb-3">
-            <h5 className="text-sm font-semibold text-gray-700">Places du hall</h5>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddPlace(hall.id, `Hall ${hall.nom}`);
-              }}
-              className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Ajouter une place
-            </button>
-          </div>
           <PlaceGrid places={hall.place} onPlaceClick={onPlaceClick} />
         </div>
       )}
@@ -167,13 +148,7 @@ const HallCard: React.FC<{
   );
 };
 
-const ZoneCard: React.FC<{ 
-  zone: Zone; 
-  onPlaceClick: (place: Place) => void;
-  onAddHall: (zoneId: number, zoneName: string) => void;
-  onAddPlace: (zoneId: number, zoneName: string) => void;
-  onAddPlaceToHall: (hallId: number, hallName: string) => void;
-}> = ({ zone, onPlaceClick, onAddHall, onAddPlace, onAddPlaceToHall }) => {
+const ZoneCard: React.FC<{ zone: Zone; onPlaceClick: (place: Place) => void }> = ({ zone, onPlaceClick }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const occupationPercent = Math.round((zone.placeOccupe / zone.nbrPlace) * 100);
 
@@ -217,37 +192,11 @@ const ZoneCard: React.FC<{
 
       {isExpanded && (
         <div className="p-5 pt-0 border-t border-gray-100">
-          {/* Boutons d'action */}
-          <div className="flex flex-wrap gap-2 mt-4 mb-4">
-            <button
-              onClick={() => onAddHall(zone.id, `Zone ${zone.nom}`)}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              Ajouter un hall
-            </button>
-            <button
-              onClick={() => onAddPlace(zone.id, `Zone ${zone.nom}`)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              Ajouter une place directe
-            </button>
-          </div>
-
-          {/* Halls */}
           <div className="space-y-3 mt-4">
             {zone.hall.map(hall => (
-              <HallCard 
-                key={hall.id} 
-                hall={hall} 
-                onPlaceClick={onPlaceClick}
-                onAddPlace={onAddPlaceToHall}
-              />
+              <HallCard key={hall.id} hall={hall} onPlaceClick={onPlaceClick} />
             ))}
           </div>
-
-          {/* Places directes */}
           {zone.place.length > 0 && (
             <div className="mt-4">
               <div className="flex items-center gap-2 mb-2">
@@ -280,12 +229,15 @@ const PlaceModal: React.FC<{ place: Place | null; onClose: () => void }> = ({ pl
         className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-gray-900">Détails de la Place</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
         </div>
 
+        {/* Contenu */}
         <div className="space-y-4">
+          {/* Numéro de place */}
           <div className="flex items-center gap-3">
             <MapPin className="w-5 h-5 text-gray-400" />
             <div>
@@ -294,17 +246,20 @@ const PlaceModal: React.FC<{ place: Place | null; onClose: () => void }> = ({ pl
             </div>
           </div>
 
+          {/* Statut */}
           <div className="flex items-start gap-3">
             <Users className="w-5 h-5 text-gray-400 mt-1" />
             <div>
               <p className="text-sm text-gray-600">Statut</p>
 
+              {/* Place libre */}
               {!isOccupee && (
                 <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
                   Libre
                 </span>
               )}
 
+              {/* Place occupée */}
               {isOccupee && hasMarchand && (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
@@ -326,6 +281,7 @@ const PlaceModal: React.FC<{ place: Place | null; onClose: () => void }> = ({ pl
           </div>
         </div>
 
+        {/* Actions */}
         <div className="mt-6 flex gap-3">
           <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             Gérer
@@ -353,19 +309,7 @@ export default function MarcheeDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
 
-  // Modals state
-  const [showCreateZone, setShowCreateZone] = useState(false);
-  const [showCreateHall, setShowCreateHall] = useState(false);
-  const [showCreatePlace, setShowCreatePlace] = useState(false);
-  const [hallContext, setHallContext] = useState<{ zoneId?: number; zoneName?: string }>({});
-  const [placeContext, setPlaceContext] = useState<{ 
-    marcheeId?: number; 
-    zoneId?: number; 
-    hallId?: number; 
-    contextName?: string 
-  }>({});
-
-  const loadMarcheeData = () => {
+  useEffect(() => {
     if (!marketId) return;
     
     setLoading(true);
@@ -376,36 +320,7 @@ export default function MarcheeDashboard() {
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    loadMarcheeData();
   }, [marketId]);
-
-  const handleAddHallToZone = (zoneId: number, zoneName: string) => {
-    setHallContext({ zoneId, zoneName });
-    setShowCreateHall(true);
-  };
-
-  const handleAddHallToMarchee = () => {
-    setHallContext({});
-    setShowCreateHall(true);
-  };
-
-  const handleAddPlaceToHall = (hallId: number, hallName: string) => {
-    setPlaceContext({ hallId, contextName: hallName });
-    setShowCreatePlace(true);
-  };
-
-  const handleAddPlaceToZone = (zoneId: number, zoneName: string) => {
-    setPlaceContext({ zoneId, contextName: zoneName });
-    setShowCreatePlace(true);
-  };
-
-  const handleAddPlaceToMarchee = () => {
-    setPlaceContext({ marcheeId: marchee?.id, contextName: marchee?.nom });
-    setShowCreatePlace(true);
-  };
 
   if (loading) {
     return (
@@ -431,41 +346,37 @@ export default function MarcheeDashboard() {
 
   if (!marchee) return null;
 
+  
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="fixed top-19 left-48 right-0 bg-white border-b-2 border-gray-300 shadow-sm z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all whitespace-nowrap flex-shrink-0"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Retour</span>
-            </button>
+      {/* En-tête administratif officiel */}
+      <div className="fixed top-19 left-48 right-0 bg-white border-b-2 border-gray-300 shadow-sm z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex items-center justify-between gap-4">
+          {/* Bouton retour */}
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all whitespace-nowrap flex-shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Retour à la liste</span>
+            <span className="sm:hidden">Retour</span>
+          </button>
 
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">
-                {marchee.nom}
-              </h1>
-              <div className="flex items-center gap-2 mt-1 text-sm sm:text-base text-gray-600">
-                <MapPin className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">{marchee.adresse}</span>
-              </div>
+          {/* Informations du marché */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">
+              {marchee.nom}
+            </h1>
+            <div className="flex items-center gap-2 mt-1 text-sm sm:text-base text-gray-600">
+              <MapPin className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">{marchee.adresse}</span>
             </div>
-
-            <button
-              onClick={() => setShowCreateZone(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Nouvelle Zone</span>
-              <span className="sm:hidden">Zone</span>
-            </button>
           </div>
         </div>
       </div>
+    </div>
 
       {/* Stats */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-20">
@@ -506,148 +417,46 @@ export default function MarcheeDashboard() {
           </div>
           <div className="space-y-4">
             {marchee.zone.map(zone => (
-              <ZoneCard 
-                key={zone.id} 
-                zone={zone} 
-                onPlaceClick={setSelectedPlace}
-                onAddHall={handleAddHallToZone}
-                onAddPlace={handleAddPlaceToZone}
-                onAddPlaceToHall={handleAddPlaceToHall}
-              />
+              <ZoneCard key={zone.id} zone={zone} onPlaceClick={setSelectedPlace} />
             ))}
           </div>
         </div>
 
-        {/* Halls indépendants */}
+        {/* Halls sans zone */}
         {marchee.hall.length > 0 && (
           <div className="mt-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Halls Indépendants</h2>
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
-                  {marchee.hall.length} hall{marchee.hall.length > 1 ? 's' : ''}
-                </span>
-                <button
-                  onClick={handleAddHallToMarchee}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-                >
-                  <Plus className="w-4 h-4" />
-                  Ajouter
-                </button>
-              </div>
+              <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
+                {marchee.hall.length} hall{marchee.hall.length > 1 ? 's' : ''}
+              </span>
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
               {marchee.hall.map(hall => (
-                <HallCard 
-                  key={hall.id} 
-                  hall={hall} 
-                  onPlaceClick={setSelectedPlace}
-                  onAddPlace={handleAddPlaceToHall}
-                />
+                <HallCard key={hall.id} hall={hall} onPlaceClick={setSelectedPlace} />
               ))}
             </div>
           </div>
         )}
 
-        {/* Places directes */}
+        {/* Places directes du marché */}
         {marchee.place.length > 0 && (
           <div className="mt-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Places Directes du Marché</h2>
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-semibold">
-                  {marchee.place.length} place{marchee.place.length > 1 ? 's' : ''}
-                </span>
-                <button
-                  onClick={handleAddPlaceToMarchee}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                >
-                  <Plus className="w-4 h-4" />
-                  Ajouter
-                </button>
-              </div>
+              <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-semibold">
+                {marchee.place.length} place{marchee.place.length > 1 ? 's' : ''}
+              </span>
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
               <PlaceGrid places={marchee.place} onPlaceClick={setSelectedPlace} />
             </div>
           </div>
         )}
-
-        {/* Section vide pour halls indépendants */}
-        {marchee.hall.length === 0 && (
-          <div className="mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Halls Indépendants</h2>
-              <button
-                onClick={handleAddHallToMarchee}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-              >
-                <Plus className="w-4 h-4" />
-                Créer un hall
-              </button>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-              <Home className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">Aucun hall indépendant pour le moment</p>
-            </div>
-          </div>
-        )}
-
-        {/* Section vide pour places directes */}
-        {marchee.place.length === 0 && (
-          <div className="mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Places Directes du Marché</h2>
-              <button
-                onClick={handleAddPlaceToMarchee}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-              >
-                <Plus className="w-4 h-4" />
-                Créer une place
-              </button>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-              <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">Aucune place directe pour le moment</p>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Modals */}
+      {/* Modal */}
       <PlaceModal place={selectedPlace} onClose={() => setSelectedPlace(null)} />
-      
-      <CreateZoneModal
-        isOpen={showCreateZone}
-        onClose={() => setShowCreateZone(false)}
-        marcheeId={marchee.id}
-        onSuccess={loadMarcheeData}
-      />
-
-      <CreateHallModal
-        isOpen={showCreateHall}
-        onClose={() => {
-          setShowCreateHall(false);
-          setHallContext({});
-        }}
-        marcheeId={marchee.id}
-        zoneId={hallContext.zoneId}
-        zoneName={hallContext.zoneName}
-        onSuccess={loadMarcheeData}
-      />
-
-      <CreatePlaceModal
-        isOpen={showCreatePlace}
-        onClose={() => {
-          setShowCreatePlace(false);
-          setPlaceContext({});
-        }}
-        marcheeId={marchee.id}
-        zoneId={placeContext.zoneId}
-        hallId={placeContext.hallId}
-        contextName={placeContext.contextName}
-        onSuccess={loadMarcheeData}
-      />
     </div>
   );
 }

@@ -177,7 +177,7 @@ const LoginForm = ({ redirectTo }: LoginFormProps) => {
       </form>
 
       {/* Lien vers la configuration */}
-      <div className="text-center">
+      {/* <div className="text-center">
         <p className="text-sm text-gray-500">
           Première utilisation ?{' '}
           <button
@@ -188,7 +188,7 @@ const LoginForm = ({ redirectTo }: LoginFormProps) => {
             Configurer votre commune
           </button>
         </p>
-      </div>
+      </div> */}
     </div>
   );
 };

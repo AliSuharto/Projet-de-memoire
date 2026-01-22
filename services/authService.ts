@@ -42,31 +42,33 @@ export interface ApiResponse<T> {
 class AuthService {
   // Connexion utilisateur
   async login(credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> {
-    try {
-      const response = await api.post('/auth/login', credentials);
-      
-      // ✅ Gestion du double niveau "data" selon votre structure
-      const loginData = response.data.data || response.data;
-      
-      if (loginData.token) {
-        // Stocker le token
-        localStorage.setItem('token', loginData.token);
-        localStorage.setItem('user', JSON.stringify(loginData.user));
-      }
-
-      return {
-        success: true,
-        data: loginData, // Contient { token, type, user }
-        message: response.data.message || 'Connexion réussie',
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'login_failed',
-        message: error.response?.data?.message || 'Email ou mot de passe incorrect',
-      };
+  try {
+    const response = await api.post('/auth/login', credentials);
+    
+    const loginData = response.data.data || response.data;
+    
+    if (loginData.token) {
+      localStorage.setItem('token', loginData.token);
+      localStorage.setItem('user', JSON.stringify(loginData.user));
     }
+
+    return {
+      success: true,
+      data: loginData,
+      message: response.data.message || 'Connexion réussie',
+    };
+  } catch (error: any) {
+    const backendMessage = error.response?.data?.message;
+    const backendError = error.response?.data?.error;
+    
+    return {
+      success: false,
+      error: backendError || 'login_failed',
+      message: backendMessage || 'Une erreur est survenue lors de la connexion',
+      // ❌ Ne plus forcer "Email ou mot de passe incorrect"
+    };
   }
+}
 
   // Déconnexion
   async logout(): Promise<void> {

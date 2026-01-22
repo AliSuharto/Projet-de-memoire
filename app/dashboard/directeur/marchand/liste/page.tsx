@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Eye, Edit, CreditCard as CardIcon, MapPin, Phone, ArrowLeft, User, Calendar, CreditCard, DollarSign, FileText, Clock, CheckCircle, XCircle, TrendingUp } from "lucide-react";
+import { Plus, Eye, Edit, CreditCard as CardIcon,X,MapPin, Phone, ArrowLeft, User, Calendar, CreditCard, DollarSign, FileText, Clock, CheckCircle, XCircle, TrendingUp, Briefcase, Hash, Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import DataTable from "@/components/ui/DataTable";
-import Modal, { ModalContent, ModalFooter } from "@/components/ui/Modal";
+import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { TableColumn, TableAction } from "@/app/types/common";
 import API_BASE_URL from "@/services/APIbaseUrl";
 import MerchantCardGenerator from "../../carteGenerator/page";
+import { exportMarchandsToExcel } from "@/components/(Directeur)/ExportMarchands";
 
 // =======================
 // Types
@@ -17,12 +18,13 @@ import MerchantCardGenerator from "../../carteGenerator/page";
 interface CreateMarchandForm {
   nom: string;
   prenom: string;
-  adress?: string;
-  description?: string;
   numCIN: string;
-  photo?: string;
-  numTel1?: string;
-  numTel2?: string;
+  adress: string;
+  numTel1: string;
+  activite: string;
+  nif: string;
+  stat: string;
+  description: string;
 }
 
 interface Place {
@@ -87,7 +89,7 @@ const marchandService = {
     console.log("Fetched marchands:", result);
     return Array.isArray(result) ? result : (result?.data || result?.marchands || []);
   },
-
+  
   create: async (data: CreateMarchandForm): Promise<Marchand> => {
     const response = await fetch(`${API_BASE_URL}/public/marchands`, {
       method: 'POST',
@@ -96,10 +98,12 @@ const marchandService = {
         ...(token && { 'Authorization': `Bearer ${token}` })
       },
       body: JSON.stringify(data),
+     
     });
    
     if (!response.ok) throw new Error(`Erreur ${response.status}`);
     return await response.json();
+
   },
 
   update: async (id: number, data: Partial<Marchand>): Promise<Marchand> => {
@@ -589,6 +593,42 @@ const MarchandDetailView: React.FC<{
 // =======================
 // Modal Création
 // =======================
+
+const InputField: React.FC<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  required?: boolean;
+  icon?: React.ReactNode;
+  type?: string;
+  disabled?: boolean;
+}> = ({ label, value, onChange, placeholder, required, icon, type = "text", disabled }) => (
+  <div className="relative">
+    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+      {label} {required && <span className="text-rose-500">*</span>}
+    </label>
+    <div className="relative group">
+      {icon && (
+        <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors">
+          {icon}
+        </div>
+      )}
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`w-full ${icon ? 'pl-8' : 'pl-3'} pr-3 py-2 text-sm border border-gray-200 rounded-lg 
+          focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none 
+          transition-all duration-200 hover:border-gray-300 bg-gray-50 focus:bg-white`}
+        placeholder={placeholder}
+        required={required}
+        disabled={disabled}
+      />
+    </div>
+  </div>
+);
+
 const CreateMarchandModal: React.FC<{ 
   isOpen: boolean; 
   onClose: () => void; 
@@ -597,12 +637,13 @@ const CreateMarchandModal: React.FC<{
   const [formData, setFormData] = useState<CreateMarchandForm>({
     nom: "",
     prenom: "",
-    adress: "",
-    description: "",
     numCIN: "",
-    photo: "",
+    adress: "",
     numTel1: "",
-    numTel2: "",
+    activite: "",
+    nif: "",
+    stat: "",
+    description: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -621,8 +662,8 @@ const CreateMarchandModal: React.FC<{
     try {
       await onSubmit(formData);
       setFormData({
-        nom: "", prenom: "", adress: "", description: "",
-        numCIN: "", photo: "", numTel1: "", numTel2: "",
+        nom: "", prenom: "", numCIN: "", adress: "",
+        numTel1: "", activite: "", nif: "", stat: "", description: "",
       });
       onClose();
     } catch (error: any) {
@@ -634,129 +675,206 @@ const CreateMarchandModal: React.FC<{
 
   const handleClose = () => {
     setFormData({
-      nom: "", prenom: "", adress: "", description: "",
-      numCIN: "", photo: "", numTel1: "", numTel2: "",
+      nom: "", prenom: "", numCIN: "", adress: "",
+      numTel1: "", activite: "", nif: "", stat: "", description: "",
     });
     setError(null);
     onClose();
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Nouveau Marchand" size="md">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={handleClose}
+      size="lg"
+      showCloseButton={false}
+      className="!max-w-3xl"
+    >
+      <style>{`
+        @keyframes slideUp {
+          from { 
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-slideUp {
+          animation: slideUp 0.2s ease-out;
+        }
+      `}</style>
+      
+      {/* Header */}
+      <div className="relative bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="bg-white/20 backdrop-blur-sm p-2 rounded-lg">
+              <User className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Nouveau Marchand</h2>
+              <p className="text-blue-100 text-xs">Enregistrer un nouveau marchand</p>
+            </div>
+          </div>
+          <button
+            onClick={handleClose}
+            disabled={loading}
+            className="text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-all duration-200"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit}>
-        <ModalContent>
+        {/* Content */}
+        <div className="px-5 py-4">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="mb-4 p-3 bg-rose-50 border-l-4 border-rose-500 rounded-lg animate-slideUp">
+              <p className="text-xs text-rose-700 font-medium">{error}</p>
             </div>
           )}
           
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nom <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.nom}
-                  onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-                  required
-                  disabled={loading}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Prénom <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.prenom}
-                  onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-                  required
-                  disabled={loading}
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Numéro CIN <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.numCIN}
-                onChange={(e) => setFormData({ ...formData, numCIN: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+          <div className="space-y-3.5">
+            {/* Nom et Prénom */}
+            <div className="grid grid-cols-2 gap-3">
+              <InputField
+                label="Nom"
+                value={formData.nom}
+                onChange={(v) => setFormData({ ...formData, nom: v })}
+                placeholder="Rakoto"
                 required
+                icon={<User className="w-3.5 h-3.5" />}
+                disabled={loading}
+              />
+              <InputField
+                label="Prénom"
+                value={formData.prenom}
+                onChange={(v) => setFormData({ ...formData, prenom: v })}
+                placeholder="Jean"
+                required
+                icon={<User className="w-3.5 h-3.5" />}
                 disabled={loading}
               />
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-              <input
-                type="text"
+
+            {/* CIN et Adresse */}
+            <div className="grid grid-cols-2 gap-3">
+              <InputField
+                label="Numéro CIN"
+                value={formData.numCIN}
+                onChange={(v) => setFormData({ ...formData, numCIN: v })}
+                placeholder="123 456 789 012"
+                required
+                icon={<Hash className="w-3.5 h-3.5" />}
+                disabled={loading}
+              />
+              <InputField
+                label="Adresse"
                 value={formData.adress}
-                onChange={(e) => setFormData({ ...formData, adress: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                onChange={(v) => setFormData({ ...formData, adress: v })}
+                placeholder="Lot II M 45 Antsirabe"
+                icon={<MapPin className="w-3.5 h-3.5" />}
                 disabled={loading}
               />
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone 1</label>
-                <input
-                  type="tel"
-                  value={formData.numTel1}
-                  onChange={(e) => setFormData({ ...formData, numTel1: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="+261 34 12 345 67"
-                  disabled={loading}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone 2</label>
-                <input
-                  type="tel"
-                  value={formData.numTel2}
-                  onChange={(e) => setFormData({ ...formData, numTel2: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="+261 32 12 345 67"
-                  disabled={loading}
-                />
-              </div>
+
+            {/* Téléphone et Activité */}
+            <div className="grid grid-cols-2 gap-3">
+              <InputField
+                label="Numéro de téléphone"
+                value={formData.numTel1}
+                onChange={(v) => setFormData({ ...formData, numTel1: v })}
+                placeholder="+261 34 12 345 67"
+                type="tel"
+                icon={<Phone className="w-3.5 h-3.5" />}
+                disabled={loading}
+              />
+              <InputField
+                label="Activité"
+                value={formData.activite}
+                onChange={(v) => setFormData({ ...formData, activite: v })}
+                placeholder="Commerce, Artisanat..."
+                icon={<Briefcase className="w-3.5 h-3.5" />}
+                disabled={loading}
+              />
             </div>
-            
+
+            {/* NIF et STAT */}
+            <div className="grid grid-cols-2 gap-3">
+              <InputField
+                label="NIF"
+                value={formData.nif}
+                onChange={(v) => setFormData({ ...formData, nif: v })}
+                placeholder="Numéro NIF"
+                icon={<FileText className="w-3.5 h-3.5" />}
+                disabled={loading}
+              />
+              <InputField
+                label="STAT"
+                value={formData.stat}
+                onChange={(v) => setFormData({ ...formData, stat: v })}
+                placeholder="Numéro STAT"
+                icon={<FileText className="w-3.5 h-3.5" />}
+                disabled={loading}
+              />
+            </div>
+
+            {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Description
+              </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Type d'activité, spécialité..."
-                rows={3}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg 
+                  focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none 
+                  transition-all duration-200 hover:border-gray-300 bg-gray-50 focus:bg-white resize-none"
+                placeholder="Informations complémentaires, spécialités, remarques..."
+                rows={2}
                 disabled={loading}
               />
             </div>
           </div>
-        </ModalContent>
+        </div>
         
-        <ModalFooter>
+        {/* Footer */}
+        <div className="px-5 py-3.5 bg-gray-50 border-t border-gray-100">
           <div className="flex space-x-3">
-            <Button type="button" variant="secondary" onClick={handleClose} className="flex-1" disabled={loading}>
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={loading}
+              className="flex-1 px-4 py-2.5 text-sm bg-white border border-gray-300 text-gray-700 font-semibold 
+                rounded-lg hover:bg-gray-50 transition-all duration-200 hover:shadow-md 
+                disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Annuler
-            </Button>
-            <Button type="submit" loading={loading} className="flex-1" disabled={loading}>
-              Enregistrer
-            </Button>
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold 
+                rounded-lg hover:shadow-lg transition-all duration-200 hover:from-blue-700 hover:to-indigo-700
+                disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Enregistrement...</span>
+                </>
+              ) : (
+                <span>Enregistrer</span>
+              )}
+            </button>
           </div>
-        </ModalFooter>
+        </div>
       </form>
     </Modal>
   );
@@ -928,6 +1046,7 @@ const MarchandsManagement: React.FC = () => {
   const [marchandsForCards, setMarchandsForCards] = useState<Marchand[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     loadMarchands();
@@ -978,8 +1097,44 @@ const MarchandsManagement: React.FC = () => {
     try {
       const newMarchand = await marchandService.create(formData);
       setMarchands(prev => [...prev, newMarchand]);
+      await loadMarchands();
     } catch (error: any) {
       throw error;
+    }
+  };
+
+  // Fonction pour exporter en Excel
+  const handleExportToExcel = () => {
+    try {
+      setIsExporting(true);
+      
+      console.log("📊 Début de l'export Excel...");
+      
+      // Option 1: Export simple avec couleurs par marché
+      const fileName = exportMarchandsToExcel(marchands);
+      
+      // Option 2: Export avec statistiques (décommentez si vous préférez)
+      // const fileName = exportMarchandsWithStats(marchands);
+      
+      console.log("✅ Export réussi:", fileName);
+      
+      // Afficher une notification de succès (optionnel)
+      // Si vous avez un système de toast/notification:
+      // toast.success(`Fichier exporté avec succès: ${fileName}`);
+      
+      // Ou simplement un alert:
+      alert(`✅ Fichier Excel exporté avec succès!\n\nNom: ${fileName}`);
+      
+    } catch (error: any) {
+      console.error("❌ Erreur lors de l'export:", error);
+      
+      // Afficher l'erreur à l'utilisateur
+      alert(`❌ Erreur lors de l'export:\n${error.message || 'Erreur inconnue'}`);
+      
+      // Ou avec un toast:
+      // toast.error(`Erreur lors de l'export: ${error.message}`);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -1028,8 +1183,12 @@ const MarchandsManagement: React.FC = () => {
               Gérez l'enregistrement et le suivi des marchands
             </p>
           </div>
-          <div className="flex space-x-3">
-            <Button onClick={loadMarchands} variant="secondary" loading={loading}>
+          <div className="flex space-x-4">
+            <Button 
+              onClick={loadMarchands} 
+              variant="secondary" 
+              loading={loading}
+            >
               Actualiser
             </Button>
             <Button
@@ -1040,8 +1199,21 @@ const MarchandsManagement: React.FC = () => {
             >
               Générer cartes ({marchands.length})
             </Button>
-            <Button onClick={() => setIsCreateModalOpen(true)} icon={Plus} className="shadow-sm">
+            <Button 
+              onClick={() => setIsCreateModalOpen(true)} 
+              icon={Plus} 
+              className="shadow-sm"
+            >
               Nouveau marchand
+            </Button>
+            <Button 
+              onClick={handleExportToExcel} 
+              icon={Download} 
+              className="shadow-sm bg-green-600 hover:bg-green-700 text-white"
+              loading={isExporting}
+              disabled={marchands.length === 0 || isExporting}
+            >
+              {isExporting ? 'Export en cours...' : 'Exporter Excel'}
             </Button>
           </div>
         </div>
@@ -1094,6 +1266,16 @@ const MarchandsManagement: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Message d'information lors de l'export */}
+        {isExporting && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md flex items-center">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
+            <p className="text-sm text-blue-700 font-medium">
+              Génération du fichier Excel en cours... Veuillez patienter.
+            </p>
+          </div>
+        )}
 
         {/* Message d'erreur */}
         {error && marchands.length > 0 && (

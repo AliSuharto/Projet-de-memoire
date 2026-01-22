@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Users, Store, MapPin, AlertCircle, TrendingUp } from 'lucide-react';
+import API_BASE_URL from '@/services/APIbaseUrl';
 
 const OrdoDashboard = () => {
   const [data, setData] = useState(null);
@@ -22,7 +23,7 @@ const COLORSS = {
       try {
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
         
-        const response = await fetch('http://localhost:8080/api/visualisation-ordo', {
+        const response = await fetch(`${API_BASE_URL}/visualisation-ordo`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
