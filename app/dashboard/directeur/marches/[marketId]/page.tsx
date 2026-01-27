@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronDown, ChevronUp, Building2, Home, MapPin, Users, TrendingUp, ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Building2, Home, MapPin, Users, TrendingUp, ArrowLeft, Plus, Trash2, Unlock, AlertTriangle } from 'lucide-react';
 import API_BASE_URL from '@/services/APIbaseUrl';
 import { CreateHallModal, CreatePlaceModal, CreateZoneModal } from '@/components/(Directeur)/CreateModal';
 
@@ -421,90 +421,253 @@ const ZoneCard: React.FC<{
   );
 };
 
+// =======================
+// Modal de Confirmation de Libération
+// =======================
+const LiberationConfirmModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  place: Place;
+  onConfirm: () => Promise<void>;
+  isLoading: boolean;
+}> = ({ isOpen, onClose, place, onConfirm, isLoading }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black modal-overlay bg-opacity-50 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-lg max-w-md w-full">
+        <div className="bg-orange-50 border-b border-orange-200 px-6 py-4 flex items-center rounded-t-lg">
+          <AlertTriangle className="text-orange-500 mr-3" size={24} />
+          <h2 className="text-xl font-bold text-gray-900">Confirmation de Libération</h2>
+        </div>
+
+        <div className="p-6">
+          <p className="text-gray-700 mb-4">
+            Êtes-vous sûr de vouloir libérer cette place ?
+          </p>
+          
+          <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-2">
+            <div className="flex justify-between">
+              <span className="text-gray-600 font-medium">Place :</span>
+              <span className="font-semibold text-gray-900">{place.nom}</span>
+            </div>
+            {place.nomMarchand && (
+              <div className="flex justify-between">
+                <span className="text-gray-600 font-medium">Marchand :</span>
+                <span className="text-gray-900">{place.nomMarchand}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-gray-600 font-medium">Statut actuel :</span>
+              <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                Occupée
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-orange-50 border-l-4 border-orange-500 p-4 mb-6">
+            <p className="text-sm text-orange-800">
+              <strong>Attention :</strong> Cette action libérera définitivement la place. 
+              Le marchand n'aura plus accès à cette place.
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading}
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition flex items-center disabled:bg-orange-300 disabled:cursor-not-allowed"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Libération...
+                </>
+              ) : (
+                <>
+                  <Unlock size={18} className="mr-2" />
+                  Confirmer la libération
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// =======================
+// Modal Principal de la Place
+// =======================
 const PlaceModal: React.FC<{ 
   place: Place | null; 
   onClose: () => void; 
-  onDeletePlace: (placeId: number, placeName: string) => void 
-}> = ({ place, onClose, onDeletePlace }) => {
+  onDeletePlace: (placeId: number, placeName: string) => void;
+  onPlaceLiberated?: () => void;
+}> = ({ place, onClose, onDeletePlace, onPlaceLiberated }) => {
+  const [isLiberationModalOpen, setIsLiberationModalOpen] = useState(false);
+  const [isLiberating, setIsLiberating] = useState(false);
+
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
   if (!place) return null;
 
   const isOccupee = place.statut === 'Occupée';
   const hasMarchand = Boolean(place.nomMarchand);
   const canDelete = place.statut === 'Libre';
 
+  const handleLibererPlace = async () => {
+    setIsLiberating(true);
+    
+    try {
+      console.log(`📤 Libération de la place ${place.id}...`);
+
+      const response = await fetch(`${API_BASE_URL}/public/places/${place.id}/liberer`, {
+        method: 'PUT',
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Erreur ${response.status}: Échec de la libération`);
+      }
+
+      const result = await response.json();
+      console.log("✅ Place libérée avec succès:", result);
+
+      // Afficher un message de succès
+      alert("✅ Place libérée avec succès!");
+
+      // Fermer les modals
+      setIsLiberationModalOpen(false);
+      onClose();
+
+      // Appeler le callback pour rafraîchir la page
+      if (onPlaceLiberated) {
+        onPlaceLiberated();
+      }
+
+    } catch (error) {
+      console.error("❌ Erreur lors de la libération de la place:", error);
+      alert(`❌ Erreur lors de la libération: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
+      setIsLiberating(false);
+    }
+  };
+
+  const handleOpenLiberationModal = () => {
+    setIsLiberationModalOpen(true);
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-lg p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-900">Détails de la Place</h3>
-          <div className="flex items-center gap-2">
-            {canDelete && (
-              <button
-                onClick={() => {
-                  onDeletePlace(place.id, place.nom);
-                  onClose();
-                }}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                title="Supprimer cette place"
+    <>
+      {/* Modal de confirmation de libération */}
+      <LiberationConfirmModal
+        isOpen={isLiberationModalOpen}
+        onClose={() => setIsLiberationModalOpen(false)}
+        place={place}
+        onConfirm={handleLibererPlace}
+        isLoading={isLiberating}
+        
+      />
+
+      {/* Modal principal */}
+      <div className="fixed inset-0 bg-black modal-overlay bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+        <div className="bg-white rounded-lg p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-gray-900">Détails de la Place</h3>
+            <div className="flex items-center gap-2">
+              {canDelete && (
+                <button
+                  onClick={() => {
+                    onDeletePlace(place.id, place.nom);
+                    onClose();
+                  }}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Supprimer cette place"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <MapPin className="w-5 h-5 text-gray-400" />
+              <div>
+                <p className="text-sm text-gray-600">Numéro</p>
+                <p className="font-semibold text-gray-900">{place.nom}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <Users className="w-5 h-5 text-gray-400 mt-1" />
+              <div>
+                <p className="text-sm text-gray-600 mb-2">Statut</p>
+                {!isOccupee ? (
+                  <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                    Libre
+                  </span>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                      Occupée
+                    </span>
+                    {hasMarchand && (
+                      <>
+                        <span className="text-sm text-gray-700">par <strong>{place.nomMarchand}</strong></span>
+                        {place.statutMarchand && (
+                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
+                            {place.statutMarchand}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex gap-3">
+            {isOccupee ? (
+              <button 
+                onClick={handleOpenLiberationModal}
+                className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center"
               >
-                <Trash2 className="w-5 h-5" />
+                <Unlock size={18} className="mr-2" />
+                Libérer
+              </button>
+            ) : (
+              <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                Gérer
               </button>
             )}
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Fermer
+            </button>
           </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <MapPin className="w-5 h-5 text-gray-400" />
-            <div>
-              <p className="text-sm text-gray-600">Numéro</p>
-              <p className="font-semibold text-gray-900">{place.nom}</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <Users className="w-5 h-5 text-gray-400 mt-1" />
-            <div>
-              <p className="text-sm text-gray-600 mb-2">Statut</p>
-              {!isOccupee ? (
-                <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                  Libre
-                </span>
-              ) : (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                    Occupée
-                  </span>
-                  {hasMarchand && (
-                    <>
-                      <span className="text-sm text-gray-700">par <strong>{place.nomMarchand}</strong></span>
-                      {place.statutMarchand && (
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
-                          {place.statutMarchand}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 flex gap-3">
-          <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            Gérer
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-          >
-            Fermer
-          </button>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -695,156 +858,158 @@ export default function MarcheeDashboard() {
                 onClick={handleAddHallToMarchee}
                 className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium whitespace-nowrap"
               >
-<Plus className="w-4 h-4" />
-<span className="hidden sm:inline">Hall</span>
-</button>
-<button
-             onClick={handleAddPlaceToMarchee}
-             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium whitespace-nowrap"
-           >
-<Plus className="w-4 h-4" />
-<span className="hidden sm:inline">Place</span>
-</button>
-</div>
-</div>
-</div>
-</div>
-{/* Stats */}
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-5">
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-      <StatCard
-        title="Total des Places"
-        value={marchee.nbrPlace}
-        icon={<MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-white" />}
-        color="bg-blue-500"
-      />
-      <StatCard
-        title="Places Libres"
-        value={marchee.placeLibre}
-        icon={<Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />}
-        color="bg-green-500"
-      />
-      <StatCard
-        title="Places Occupées"
-        value={marchee.placeOccupe}
-        icon={<Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />}
-        color="bg-red-500"
-      />
-      <StatCard
-        title="Taux d'Occupation"
-        value={`${marchee.occupationRate}%`}
-        icon={<TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />}
-        color="bg-orange-500"
-      />
-    </div>
-
-    {/* Zones */}
-    <div className="mt-8">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Zones du Marché</h2>
-        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
-          {marchee.zone.length} zone{marchee.zone.length > 1 ? 's' : ''}
-        </span>
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Hall</span>
+              </button>
+              <button
+                onClick={handleAddPlaceToMarchee}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Place</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-      <div className="space-y-4">
-        {marchee.zone.map(zone => (
-          <ZoneCard 
-            key={zone.id} 
-            zone={zone} 
-            onPlaceClick={setSelectedPlace}
-            onAddHall={handleAddHallToZone}
-            onAddPlace={handleAddPlaceToZone}
-            onAddPlaceToHall={handleAddPlaceToHall}
-            onDeleteZone={handleDeleteZone}
-            onDeleteHall={handleDeleteHall}
-            onDeletePlace={handleDeletePlace}
+
+      {/* Stats */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <StatCard
+            title="Total des Places"
+            value={marchee.nbrPlace}
+            icon={<MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-white" />}
+            color="bg-blue-500"
           />
-        ))}
-      </div>
-      {marchee.zone.length === 0 && (
-        <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-12 text-center mb-8">
-          <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-lg font-medium text-gray-600 mb-2">Aucune zone disponible</p>
-          <p className="text-sm text-gray-400">Cliquez sur le bouton "Zone" pour en créer une</p>
+          <StatCard
+            title="Places Libres"
+            value={marchee.placeLibre}
+            icon={<Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />}
+            color="bg-green-500"
+          />
+          <StatCard
+            title="Places Occupées"
+            value={marchee.placeOccupe}
+            icon={<Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />}
+            color="bg-red-500"
+          />
+          <StatCard
+            title="Taux d'Occupation"
+            value={`${marchee.occupationRate}%`}
+            icon={<TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />}
+            color="bg-orange-500"
+          />
         </div>
-      )}
+
+        {/* Zones */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Zones du Marché</h2>
+            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+              {marchee.zone.length} zone{marchee.zone.length > 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="space-y-4">
+            {marchee.zone.map(zone => (
+              <ZoneCard 
+                key={zone.id} 
+                zone={zone} 
+                onPlaceClick={setSelectedPlace}
+                onAddHall={handleAddHallToZone}
+                onAddPlace={handleAddPlaceToZone}
+                onAddPlaceToHall={handleAddPlaceToHall}
+                onDeleteZone={handleDeleteZone}
+                onDeleteHall={handleDeleteHall}
+                onDeletePlace={handleDeletePlace}
+              />
+            ))}
+          </div>
+          {marchee.zone.length === 0 && (
+            <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-12 text-center mb-8">
+              <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-lg font-medium text-gray-600 mb-2">Aucune zone disponible</p>
+              <p className="text-sm text-gray-400">Cliquez sur le bouton "Zone" pour en créer une</p>
+            </div>
+          )}
+        </div>
+
+        {/* Halls directs du marché */}
+        {marchee.hall && marchee.hall.length > 0 && (
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Halls du Marché</h2>
+              <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
+                {marchee.hall.length} hall{marchee.hall.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {marchee.hall.map(hall => (
+                <HallCard 
+                  key={hall.id} 
+                  hall={hall} 
+                  onPlaceClick={setSelectedPlace}
+                  onAddPlace={handleAddPlaceToHall}
+                  onDeleteHall={handleDeleteHall}
+                  onDeletePlace={handleDeletePlace}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Places directes du marché */}
+        {marchee.place && marchee.place.length > 0 && (
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Places du Marché</h2>
+              <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
+                {marchee.place.length} place{marchee.place.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            <PlaceGrid places={marchee.place} onPlaceClick={setSelectedPlace} onDeletePlace={handleDeletePlace} />
+          </div>
+        )}
+      </div>
+
+      {/* Modals */}
+      <CreateZoneModal
+        isOpen={showCreateZone}
+        onClose={() => setShowCreateZone(false)}
+        marcheeId={marchee.id}
+        onSuccess={loadMarcheeData}
+      /> 
+      <CreateHallModal
+        isOpen={showCreateHall}
+        onClose={() => { setShowCreateHall(false); setHallContext({}); }}
+        marcheeId={marchee.id}
+        zoneId={hallContext.zoneId}
+        zoneName={hallContext.zoneName}
+        onSuccess={loadMarcheeData}
+      />
+      <CreatePlaceModal
+        isOpen={showCreatePlace}
+        onClose={() => { setShowCreatePlace(false); setPlaceContext({}); }}
+        marcheeId={placeContext.marcheeId}
+        zoneId={placeContext.zoneId}
+        hallId={placeContext.hallId}
+        contextName={placeContext.contextName}
+        onSuccess={loadMarcheeData}
+      />
+      <PlaceModal 
+        place={selectedPlace} 
+        onClose={() => setSelectedPlace(null)} 
+        onDeletePlace={handleDeletePlace}
+        onPlaceLiberated={loadMarcheeData}
+      />
+      <ConfirmDeleteModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, type: null, id: null, name: '' })}
+        onConfirm={confirmDelete}
+        title={`Supprimer ${deleteConfirm.name}`}
+        message={`Êtes-vous sûr de vouloir supprimer ${deleteConfirm.name} ? Cette action est irréversible.`}
+        isDeleting={isDeleting}
+      />
     </div>
-
-    {/* Halls directs du marché */}
-    {marchee.hall && marchee.hall.length > 0 && (
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Halls du Marché</h2>
-          <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
-            {marchee.hall.length} hall{marchee.hall.length > 1 ? 's' : ''}
-          </span>
-        </div>
-        <div className="space-y-3">
-          {marchee.hall.map(hall => (
-            <HallCard 
-              key={hall.id} 
-              hall={hall} 
-              onPlaceClick={setSelectedPlace}
-              onAddPlace={handleAddPlaceToHall}
-              onDeleteHall={handleDeleteHall}
-              onDeletePlace={handleDeletePlace}
-            />
-          ))}
-        </div>
-      </div>
-    )}
-
-    {/* Places directes du marché */}
-    {marchee.place && marchee.place.length > 0 && (
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Places du Marché</h2>
-          <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
-            {marchee.place.length} place{marchee.place.length > 1 ? 's' : ''}
-          </span>
-        </div>
-        <PlaceGrid places={marchee.place} onPlaceClick={setSelectedPlace} onDeletePlace={handleDeletePlace} />
-      </div>
-    )}
-  </div>
-
-  {/* Modals */}
-  <CreateZoneModal
-    isOpen={showCreateZone}
-    onClose={() => setShowCreateZone(false)}
-    marcheeId={marchee.id}
-    onSuccess={loadMarcheeData}
-  /> 
-  <CreateHallModal
-    isOpen={showCreateHall}
-    onClose={() => { setShowCreateHall(false); setHallContext({}); }}
-    marcheeId={marchee.id}
-    zoneId={hallContext.zoneId}
-    zoneName={hallContext.zoneName}
-    onSuccess={loadMarcheeData}
-  />
-  <CreatePlaceModal
-    isOpen={showCreatePlace}
-    onClose={() => { setShowCreatePlace(false); setPlaceContext({}); }}
-    marcheeId={placeContext.marcheeId}
-    zoneId={placeContext.zoneId}
-    hallId={placeContext.hallId}
-    contextName={placeContext.contextName}
-    onSuccess={loadMarcheeData}
-  />
-  <PlaceModal 
-    place={selectedPlace} 
-    onClose={() => setSelectedPlace(null)} 
-    onDeletePlace={handleDeletePlace} 
-  />
-  <ConfirmDeleteModal
-    isOpen={deleteConfirm.isOpen}
-    onClose={() => setDeleteConfirm({ isOpen: false, type: null, id: null, name: '' })}
-    onConfirm={confirmDelete}
-    title={`Supprimer ${deleteConfirm.name}`}
-    message={`Êtes-vous sûr de vouloir supprimer ${deleteConfirm.name} ? Cette action est irréversible.`}
-    isDeleting={isDeleting}
-  />
-</div>
   );
 }

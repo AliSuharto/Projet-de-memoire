@@ -1,6 +1,12 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { Search, X, Calendar, User, DollarSign, FileText, Receipt, Store, MapPin, CheckCircle, XCircle, Clock, Filter } from 'lucide-react';
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Search, Calendar, User, DollarSign, FileText, Receipt, 
+  CheckCircle, XCircle, Clock, Filter, Eye, 
+  ChevronLeft, ChevronRight, ArrowUp 
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import API_BASE_URL from '@/services/APIbaseUrl';
 
 // Types
@@ -19,6 +25,8 @@ interface PaiementDTO {
   modePaiement?: string;
   moisdePaiement?: string;
   nomMarchands?: string;
+  ActiviteMarchands?: string;
+  nomPlaceComplet?: string;
   idMarchand?: number;
   idAgent?: number;
   nomAgent?: string;
@@ -43,38 +51,86 @@ interface SessionDTO {
   notes?: string;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 const SessionListPage: React.FC = () => {
   const [sessions, setSessions] = useState<SessionDTO[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<SessionDTO[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
-  const [selectedSession, setSelectedSession] = useState<SessionDTO | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState<boolean>(false);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Bouton retour en haut
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  const router = useRouter();
+
   const getUserIdFromToken = (): number | null => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
-      
-      const payload = token.split('.')[1];
-      const decodedPayload = JSON.parse(atob(payload));
-      
-      return decodedPayload.userId || decodedPayload.id || decodedPayload.sub;
-    } catch (err) {
-      console.error('Error decoding token:', err);
+      if (!token) return null;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.userId || payload.id || payload.sub || null;
+    } catch {
       return null;
     }
   };
 
+  // Scroll detection pour le bouton flottant
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 500);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCloseSession = async (sessionId: number) => {
+    if (!confirm('Êtes-vous sûr de vouloir fermer cette session ?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/close`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) throw new Error('Échec de la fermeture de la session');
+
+      // Mettre à jour la liste des sessions
+      setSessions(prevSessions => 
+        prevSessions.map(s => 
+          s.id === sessionId ? { ...s, status: 'FERMEE' } : s
+        )
+      );
+
+      alert('Session fermée avec succès !');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Une erreur est survenue lors de la fermeture');
+    }
+  };
+
+  // Fetch sessions + tri par date décroissante
   useEffect(() => {
     const fetchSessions = async () => {
       try {
         setLoading(true);
         const userId = getUserIdFromToken();
-        
-        if (!userId) throw new Error('User ID not found in token');
+        if (!userId) throw new Error('Utilisateur non identifié');
 
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_BASE_URL}/sessions/user/${userId}`, {
@@ -84,13 +140,17 @@ const SessionListPage: React.FC = () => {
           }
         });
 
-        if (!response.ok) throw new Error('Failed to fetch sessions');
+        if (!response.ok) throw new Error('Échec du chargement des sessions');
 
-        const data: SessionDTO[] = await response.json();
-        console.log('Fetched sessions:', data);
+        let data: SessionDTO[] = await response.json();
+
+        // Tri : plus récent en premier
+        data.sort((a, b) => 
+          new Date(b.dateSession).getTime() - new Date(a.dateSession).getTime()
+        );
+
         setSessions(data);
         setFilteredSessions(data);
-        setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Une erreur est survenue');
       } finally {
@@ -101,22 +161,43 @@ const SessionListPage: React.FC = () => {
     fetchSessions();
   }, []);
 
+  // Filtrage
   useEffect(() => {
-    let filtered = sessions;
+    let filtered = [...sessions];
 
     if (selectedStatus !== 'All') {
-      filtered = filtered.filter(session => session.status === selectedStatus);
+      filtered = filtered.filter(s => s.status === selectedStatus);
     }
 
     if (searchTerm) {
-      filtered = filtered.filter(session =>
-        session.nomSession.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        `${session.user.prenom} ${session.user.nom}`.toLowerCase().includes(searchTerm.toLowerCase())
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(s =>
+        s.nomSession.toLowerCase().includes(term) ||
+        `${s.user.prenom} ${s.user.nom}`.toLowerCase().includes(term)
       );
     }
 
     setFilteredSessions(filtered);
+    setCurrentPage(1); // reset page
   }, [searchTerm, selectedStatus, sessions]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredSessions.length / ITEMS_PER_PAGE);
+
+  const paginatedSessions = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredSessions.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredSessions, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page);
+      // Remonte en haut après changement de page
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 150);
+    }
+  };
 
   const getStatusConfig = (status: SessionDTO['status']) => {
     const configs = {
@@ -127,16 +208,6 @@ const SessionListPage: React.FC = () => {
       'FERMEE': { color: 'bg-gray-100 text-gray-700 border-gray-200', icon: XCircle, label: 'Fermée' }
     };
     return configs[status];
-  };
-
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   const formatShortDate = (dateString: string): string => {
@@ -155,16 +226,13 @@ const SessionListPage: React.FC = () => {
     }).format(amount);
   };
 
-  const calculateStats = () => {
+  const stats = useMemo(() => {
     const total = sessions.length;
     const validees = sessions.filter(s => s.status === 'VALIDEE').length;
     const ouvertes = sessions.filter(s => s.status === 'OUVERTE').length;
     const montantTotal = sessions.reduce((sum, s) => sum + s.montantCollecte, 0);
-
     return { total, validees, ouvertes, montantTotal };
-  };
-
-  const stats = calculateStats();
+  }, [sessions]);
 
   if (loading) {
     return (
@@ -192,12 +260,12 @@ const SessionListPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative">
       <div className="max-w-6xl mx-auto px-6 py-5">
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Mes Sessions</h1>
-          <p className="text-gray-600">Gérez et consultez vos sessions de collecte</p>
         </div>
 
         {/* Stats Cards */}
@@ -286,225 +354,141 @@ const SessionListPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Sessions Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Sessions List */}
-          <div className="lg:col-span-2 space-y-4">
-            {filteredSessions.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm p-12 text-center border border-gray-100">
-                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg">Aucune session trouvée</p>
-              </div>
-            ) : (
-              filteredSessions.map((session) => {
-                const statusConfig = getStatusConfig(session.status);
-                const StatusIcon = statusConfig.icon;
-                
-                return (
-                  <div
-                    key={session.id}
-                    onClick={() => setSelectedSession(session)}
-                    className={`bg-white rounded-xl shadow-sm hover:shadow-lg transition-all cursor-pointer border-2 transform hover:scale-[1.02] ${
-                      selectedSession?.id === session.id 
-                        ? 'border-blue-500 ring-2 ring-blue-200' 
-                        : 'border-gray-100 hover:border-blue-200'
-                    }`}
-                  >
-                    <div className="p-5">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">{session.nomSession}</h3>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <User className="w-4 h-4" />
-                            <span>{session.user.prenom} {session.user.nom}</span>
-                          </div>
-                        </div>
-                        <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold border ${statusConfig.color}`}>
-                          <StatusIcon className="w-4 h-4" />
-                          {statusConfig.label}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-5 h-5 text-gray-400" />
-                          <div>
-                            <p className="text-xs text-gray-500">Date</p>
-                            <p className="text-sm font-medium text-gray-900">{formatShortDate(session.dateSession)}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="w-5 h-5 text-gray-400" />
-                          <div>
-                            <p className="text-xs text-gray-500">Montant</p>
-                            <p className="text-sm font-bold text-blue-600">{formatAmount(session.montantCollecte)}</p>
-                          </div>
+        {/* Sessions List */}
+        <div className="space-y-4">
+          {paginatedSessions.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-sm p-12 text-center border border-gray-100">
+              <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">Aucune session trouvée</p>
+            </div>
+          ) : (
+            paginatedSessions.map((session) => {
+              const statusConfig = getStatusConfig(session.status);
+              const StatusIcon = statusConfig.icon;
+              
+              return (
+                <div
+                  key={session.id}
+                  className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all border-2 border-gray-100 hover:border-blue-300"
+                >
+                  <div className="p-5">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">{session.nomSession}</h3>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <User className="w-4 h-4" />
+                          <span>{session.user.prenom} {session.user.nom}</span>
                         </div>
                       </div>
-
-                      {session.paiements && session.paiements.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-gray-100">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Receipt className="w-4 h-4" />
-                            <span>{session.paiements.length} paiement{session.paiements.length > 1 ? 's' : ''}</span>
-                          </div>
-                        </div>
-                      )}
+                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold border ${statusConfig.color}`}>
+                        <StatusIcon className="w-4 h-4" />
+                        {statusConfig.label}
+                      </span>
                     </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
 
-          {/* Session Details Panel */}
-          <div className="lg:col-span-1">
-            {selectedSession ? (
-              <div className="bg-white rounded-xl shadow-lg sticky top-6 border border-gray-100">
-                <div className="p-6 border-b border-gray-100">
-                  <div className="flex items-start justify-between mb-4">
-                    <h2 className="text-2xl font-bold text-gray-900">Détails</h2>
-                    <button
-                      onClick={() => setSelectedSession(null)}
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      <X className="w-6 h-6" />
-                    </button>
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100 mb-4">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-gray-400" />
+                        <div>
+                          <p className="text-xs text-gray-500">Date</p>
+                          <p className="text-sm font-medium text-gray-900">{formatShortDate(session.dateSession)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-5 h-5 text-gray-400" />
+                        <div>
+                          <p className="text-xs text-gray-500">Montant</p>
+                          <p className="text-sm font-bold text-blue-600">{formatAmount(session.montantCollecte)}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Receipt className="w-4 h-4" />
+                        <span>{session.paiements?.length || 0} paiement{(session.paiements?.length || 0) > 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {session.status === 'OUVERTE' && (
+                          <button
+                            onClick={() => handleCloseSession(session.id)}
+                            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium shadow-sm"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Fermer
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            sessionStorage.setItem('selectedSession', JSON.stringify(session));
+                            router.push(`/dashboard/regisseur/sessions/${session.id}`);
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+                        >
+                          <Eye className="w-4 h-4" />
+                          Voir détails
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                <div className="p-6 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-                  <div>
-                    <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Session</label>
-                    <p className="text-lg font-bold text-gray-900 mt-1">{selectedSession.nomSession}</p>
-                  </div>
-
-                  <div>
-                    <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Type</label>
-                    <p className="text-base text-gray-900 mt-1">{selectedSession.type}</p>
-                  </div>
-
-                  <div>
-                    <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Statut</label>
-                    <div className="mt-2">
-                      {(() => {
-                        const config = getStatusConfig(selectedSession.status);
-                        const StatusIcon = config.icon;
-                        return (
-                          <span className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg font-semibold border ${config.color}`}>
-                            <StatusIcon className="w-5 h-5" />
-                            {config.label}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
-                    <label className="text-xs uppercase tracking-wider text-blue-700 font-semibold">Montant Collecté</label>
-                    <p className="text-3xl font-bold text-blue-700 mt-2">{formatAmount(selectedSession.montantCollecte)}</p>
-                  </div>
-
-                  <div>
-                    <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Date de Session</label>
-                    <p className="text-base text-gray-900 mt-1">{formatDate(selectedSession.dateSession)}</p>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                    <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 block">Créé par</label>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
-                        {selectedSession.user.prenom.charAt(0)}{selectedSession.user.nom.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-bold text-gray-900">{selectedSession.user.prenom} {selectedSession.user.nom}</p>
-                        <p className="text-sm text-gray-500">ID: {selectedSession.user.id}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {selectedSession.notes && (
-                    <div>
-                      <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Notes</label>
-                      <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <p className="text-gray-800 text-sm leading-relaxed">{selectedSession.notes}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedSession.paiements && selectedSession.paiements.length > 0 && (
-                    <div>
-                      <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 block">
-                        Paiements ({selectedSession.paiements.length})
-                      </label>
-                      <div className="space-y-3 max-h-80 overflow-y-auto">
-                        {selectedSession.paiements.map((paiement) => (
-                          <div key={paiement.id} className="bg-white border-2 border-gray-100 rounded-lg p-4 hover:border-blue-200 transition-colors">
-                            <div className="flex justify-between items-start mb-3">
-                              <span className="text-xl font-bold text-gray-900">{formatAmount(paiement.montant)}</span>
-                              <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">
-                                {paiement.typePaiement}
-                              </span>
-                            </div>
-                            
-                            <div className="space-y-2 text-sm">
-                              {paiement.nomMarchands && (
-                                <div className="flex items-center gap-2 text-gray-600">
-                                  <Store className="w-4 h-4" />
-                                  <span>{paiement.nomMarchands}</span>
-                                </div>
-                              )}
-                              
-                              {paiement.nomPlace && (
-                                <div className="flex items-center gap-2 text-gray-600">
-                                  <MapPin className="w-4 h-4" />
-                                  <span>{paiement.nomPlace}</span>
-                                </div>
-                              )}
-                              
-                              {paiement.nomAgent && (
-                                <div className="flex items-center gap-2 text-gray-600">
-                                  <User className="w-4 h-4" />
-                                  <span>{paiement.nomAgent}</span>
-                                </div>
-                              )}
-                              
-                              {paiement.datePaiement && (
-                                <div className="flex items-center gap-2 text-gray-500 text-xs pt-2 border-t border-gray-100">
-                                  <Calendar className="w-3.5 h-3.5" />
-                                  <span>{formatDate(paiement.datePaiement)}</span>
-                                </div>
-                              )}
-                              
-                              {paiement.recuNumero && (
-                                <div className="flex items-center gap-2 text-gray-500 text-xs">
-                                  <Receipt className="w-3.5 h-3.5" />
-                                  <span>Reçu: {paiement.recuNumero}</span>
-                                </div>
-                              )}
-
-                              {paiement.motif && (
-                                <div className="mt-2 pt-2 border-t border-gray-100">
-                                  <p className="text-xs text-gray-600 italic">{paiement.motif}</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm p-12 text-center border border-gray-100 sticky top-6">
-                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">Sélectionnez une session pour voir les détails</p>
-              </div>
-            )}
-          </div>
+              );
+            })
+          )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-gray-600">
+              Affichage {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredSessions.length)} sur {filteredSessions.length}
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`w-10 h-10 rounded-lg text-sm font-medium transition-all ${
+                    currentPage === page
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Bouton flottant Retour en haut */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 z-50 bg-blue-600 text-white p-4 rounded-full shadow-xl hover:bg-blue-700 hover:scale-110 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300"
+          aria-label="Retour en haut"
+        >
+          <ArrowUp className="w-6 h-6" />
+        </button>
+      )}
     </div>
   );
 };

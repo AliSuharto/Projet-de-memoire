@@ -10,7 +10,6 @@ import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 export default function DirecteurLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { topNav, sideNav } = useRoleNavigation();
-
   return (
     <ProtectedRoute allowedRoles={['directeur', 'prmc']}>
       <div>
@@ -19,13 +18,15 @@ export default function DirecteurLayout({ children }: { children: React.ReactNod
           isAuthenticated={true}
           notifications={5}
           user={{
-            name: user?.nom || 'Directeur',
-            email: user?.email || 'directeur@commune.gmc'
+            nom: user?.nom || 'Directeur',
+            email: user?.email || 'directeur@commune.gmc',
+            role: user?.role || 'Directeur'
           }}
         />
         
-        <SideNav items={sideNav} />
-        <main className="pl-0 md:pl-48 pt-0 min-h-screen bg-gray-50">
+        <SideNav
+         items={sideNav}/>
+        <main className="pl-0 md:pl-56 pt-0 min-h-screen bg-gray-50">
           <div className="p-6">
             {children}
           </div>

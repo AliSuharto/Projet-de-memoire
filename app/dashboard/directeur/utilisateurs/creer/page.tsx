@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-
+import { UserPlus, Mail, User, Phone, Shield, X } from 'lucide-react';
 import api from '@/services/api';
-
-// Configuration de l'API
+import { useToast } from '@/components/ui/ToastContainer';
 
 // Types
 interface CreateUserRequest {
@@ -30,8 +29,6 @@ interface ConfirmationModalProps {
   userData: CreateUserRequest;
 }
 
-
-
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,
   onClose,
@@ -41,37 +38,54 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   if (!isOpen) return null;
 
   return (
-     <div className="fixed inset-0 z-50 flex items-center justify-center">
-  <div 
-    className="absolute inset-0 modal-overlay"
->
-        <h3 className="text-xl font-bold text-gray-800 mb-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn">
+      <div 
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full animate-slideUp">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        
+        <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-6 mx-auto">
+          <UserPlus className="w-8 h-8 text-blue-600" />
+        </div>
+        
+        <h3 className="text-2xl font-bold text-gray-900 mb-3 text-center">
           Confirmer la création
         </h3>
-        <p className="text-gray-600 mb-6">
-          Êtes-vous sûr de vouloir créer l'utilisateur{' '}
-          <span className="font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-            {userData.nom}
-          </span>{' '}
-          avec l'email{' '}
-          <span className="font-semibold text-green-600 bg-green-50 px-2 py-1 rounded">
-            {userData.email}
-          </span>{' '}
-          et pour le rôle{' '}
-          <span className="font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded">
-            {userData.role}
-          </span> ?
-        </p>
+        
+        <div className="space-y-3 mb-8">
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-sm text-gray-500 mb-1">Nom complet</p>
+            <p className="font-semibold text-gray-900">{userData.prenom} {userData.nom}</p>
+          </div>
+          
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-sm text-gray-500 mb-1">Email</p>
+            <p className="font-semibold text-gray-900">{userData.email}</p>
+          </div>
+          
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-sm text-gray-500 mb-1">Rôle</p>
+            <p className="font-semibold text-gray-900">{userData.role}</p>
+          </div>
+        </div>
+        
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all duration-200"
           >
             Annuler
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-medium hover:shadow-lg hover:scale-105 transition-all duration-200"
           >
             Confirmer
           </button>
@@ -83,6 +97,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
 // Composant principal
 const CreateUserPage: React.FC = () => {
+  const { showSuccess, showError } = useToast();
+  
   const [formData, setFormData] = useState<CreateUserRequest>({
     nom: '',
     email: '',
@@ -94,13 +110,11 @@ const CreateUserPage: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const roles = [
-    { value: 'PRMC', label: 'PRMC' },
-    { value: 'REGISSEUR', label: 'Régisseur' },
-    { value: 'PERCEPTEUR', label: 'Percepteur' },
-    { value: 'REGISSEUR_PRINCIPAL', label: 'Régisseur Principal' }
+    { value: 'REGISSEUR', label: 'Régisseur', color: 'blue' },
+    { value: 'PERCEPTEUR', label: 'Percepteur', color: 'green' },
+    { value: 'REGISSEUR_PRINCIPAL', label: 'Régisseur Principal', color: 'purple' }
   ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -111,193 +125,221 @@ const CreateUserPage: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsModalOpen(true);
   };
 
   const confirmCreateUser = async () => {
     setIsLoading(true);
-    setMessage(null);
     
     try {
       const response = await api.post<ApiResponse<any>>('/users', formData);
       
       if (response.data.success) {
-        setMessage({ type: 'success', text: 'Utilisateur créé avec succès!' });
+        showSuccess(
+          'Utilisateur créé avec succès!',
+          `${formData.prenom} ${formData.nom} a été ajouté au système.`
+        );
+        
+        // Réinitialiser le formulaire
         setFormData({
-                nom: '',
-                email: '',
-                role: '',
-                pseudo: '',
-                telephone: '',
-                prenom: '',
+          nom: '',
+          email: '',
+          role: '',
+          pseudo: '',
+          telephone: '',
+          prenom: '',
         });
+        
+        setIsModalOpen(false);
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Une erreur est survenue lors de la création';
-      setMessage({ type: 'error', text: errorMessage });
+      const errorMessage = error.response?.data?.message || 'Une erreur est survenue lors de la création de l\'utilisateur';
+      showError(
+        'Erreur de création',
+        errorMessage
+      );
     } finally {
       setIsLoading(false);
-      setIsModalOpen(false);
     }
   };
 
-  const isFormValid = formData.nom && formData.email && formData.role && formData.motDePasse;
+  const isFormValid = formData.nom && formData.email && formData.role && formData.prenom && formData.pseudo;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white-50 to-gray-100 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 text-center">
-            Création d'un nouvel utilisateur
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 py-6 px-4">
+      <div className="max-w-5xl mx-auto">
+        {/* Header avec animation */}
+        <div className="text-center mb-6 animate-fadeIn">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1 flex items-center justify-center gap-2">
+            <UserPlus className="w-6 h-6 text-blue-600" />
+            Nouveau Utilisateur
           </h1>
-          <p className="text-gray-600 text-center mt-2">
-            Remplissez les informations ci-dessous pour créer un compte utilisateur
+          <p className="text-sm text-gray-600">
+            Créez un compte utilisateur en quelques étapes
           </p>
         </div>
 
-        {/* Message de feedback */}
-        {message && (
-          <div className={`p-4 rounded-lg mb-6 ${
-            message.type === 'success' 
-              ? 'bg-green-50 text-green-800 border border-green-200' 
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}>
-            {message.text}
-          </div>
-        )}
-
         {/* Formulaire */}
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Nom complet */}
-              <div>
-                <label htmlFor="nom" className="block text-sm font-medium text-gray-700 mb-2">
-                  Nom *
-                </label>
-                <input
-                  type="text"
-                  id="nom"
-                  name="nom"
-                  value={formData.nom}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="Entrez le nom complet"
-                />
-              </div>
+        <div className="bg-white rounded-3xl shadow-xl p-8 md:p-10 animate-slideUp">
+          <div className="space-y-8">
+            {/* Informations personnelles */}
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <User className="w-5 h-5 text-blue-600" />
+                Informations personnelles
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="group">
+                  <label htmlFor="prenom" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Prénom <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="prenom"
+                    name="prenom"
+                    value={formData.prenom}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-none"
+                    placeholder="Jean"
+                  />
+                </div>
 
-              <div>
-                <label htmlFor="prenom" className="block text-sm font-medium text-gray-700 mb-2">
-                  Prenom *
-                </label>
-                <input
-                  type="text"
-                  id="prenom"
-                  name="prenom"
-                  value={formData.prenom}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="Entrez le nom complet"
-                />
-              </div>
+                <div className="group">
+                  <label htmlFor="nom" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Nom <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="nom"
+                    name="nom"
+                    value={formData.nom}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-none"
+                    placeholder="Dupont"
+                  />
+                </div>
 
-              {/* Email */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Adresse email *
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="exemple@email.com"
-                />
-              </div>
-
-              {/* Rôle */}
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-                  Rôle *
-                </label>
-                <select
-                  id="role"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                >
-                  <option value="">Sélectionnez un rôle</option>
-                  {roles.map(role => (
-                    <option key={role.value} value={role.value}>
-                      {role.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Pseudo */}
-                <div>
-                    <label htmlFor="pseudo" className="block text-sm font-medium text-gray-700 mb-2">
-                    Pseudo *
-                    </label>
-                    <input
+                <div className="group">
+                  <label htmlFor="pseudo" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Pseudo <span className="text-red-500">*</span>
+                  </label>
+                  <input
                     type="text"
                     id="pseudo"
                     name="pseudo"
                     value={formData.pseudo}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholder="Entrez le pseudo"
-                    />
-                 </div>
-
-              {/* Téléphone */}
-              <div>
-                <label htmlFor="telephone" className="block text-sm font-medium text-gray-700 mb-2">
-                  Téléphone
-                </label>
-                <input
-                  type="tel"
-                  id="telephone"
-                  name="telephone"
-                  value={formData.telephone}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="+261 34 00 000 00"
-                />
-              </div>
-              {/* Adresse */}
-              
-            
-
-                {/* Bouton de soumission */}
-                <div className="  pt-6">
-                <button
-                    type="submit"
-                    // disabled={!isFormValid || isLoading}
-                    className={`px-8 py-3 rounded-lg font-medium text-white transition-all duration-200 ${
-                    isFormValid && !isLoading
-                        ? 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5'
-                        : 'bg-gray-400 cursor-not-allowed'
-                    }`}
-                >
-                    {isLoading ? 'Création en cours...' : 'Créer l\'utilisateur'}
-                </button>
+                    className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-none"
+                    placeholder="jdupont"
+                  />
                 </div>
 
+                <div className="group">
+                  <label htmlFor="telephone" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Téléphone
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="tel"
+                      id="telephone"
+                      name="telephone"
+                      value={formData.telephone}
+                      onChange={handleInputChange}
+                      className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-none"
+                      placeholder="+261 34 00 000 00"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-          </form>
+
+            {/* Informations de connexion */}
+            <div className="border-t-2 border-gray-100 pt-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Mail className="w-5 h-5 text-blue-600" />
+                Informations de connexion
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="group">
+                  <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Adresse email <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-none"
+                      placeholder="exemple@email.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="group">
+                  <label htmlFor="role" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Rôle <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <select
+                      id="role"
+                      name="role"
+                      value={formData.role}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-none appearance-none cursor-pointer"
+                    >
+                      <option value="">Sélectionnez un rôle</option>
+                      {roles.map(role => (
+                        <option key={role.value} value={role.value}>
+                          {role.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bouton de soumission */}
+            <div className="flex justify-end pt-6">
+              <button
+                onClick={handleSubmit}
+                disabled={!isFormValid || isLoading}
+                className={`group relative px-8 py-4 rounded-xl font-semibold text-white transition-all duration-300 ${
+                  isFormValid && !isLoading
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:shadow-2xl hover:shadow-blue-500/50 hover:scale-105 active:scale-95'
+                    : 'bg-gray-400 cursor-not-allowed'
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  {isLoading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Création en cours...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-5 h-5" />
+                      Créer l'utilisateur
+                    </>
+                  )}
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -308,6 +350,51 @@ const CreateUserPage: React.FC = () => {
         onConfirm={confirmCreateUser}
         userData={formData}
       />
+
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+
+        .animate-slideUp {
+          animation: slideUp 0.4s ease-out;
+        }
+
+        .animate-slideDown {
+          animation: slideDown 0.4s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

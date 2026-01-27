@@ -13,7 +13,8 @@ import {
   Search, 
   X, 
   ChevronDown,
-  Settings
+  Notebook,
+  HelpCircle
 } from 'lucide-react';
 import BurgerMenu from './BurgerMenu';
 
@@ -40,10 +41,11 @@ interface TopnavProps {
     alt: string;
   };
   user?: {
-    name: string;
+    nom: string;
+    prenom?: string;
     email: string;
     avatar?: string;
-    role?: string; // Ajout du rôle
+    role?: string;
   };
   notifications?: number;
   isAuthenticated?: boolean;
@@ -66,8 +68,8 @@ export default function Topnav({
     alt: 'Logo'
   },
   user = {
-    name: 'John Doe',
-    email: 'john@example.com'
+    nom: 'Ali Suharto',
+    email: 'ali@example.com'
   },
   isAuthenticated = false,
   notifications = 0,
@@ -78,6 +80,7 @@ export default function Topnav({
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [filteredPages, setFilteredPages] = useState<SearchablePage[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const { logout } = useAuth();
   
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -104,8 +107,8 @@ export default function Topnav({
           pages.push({
             label: subItem.label,
             href: subItem.href,
-            icon: subItem.icon || item.icon, // Utiliser l'icône du sous-item ou celle du parent
-            category: item.label, // La catégorie est le label du parent
+            icon: subItem.icon || item.icon,
+            category: item.label,
             description: subItem.description
           });
         });
@@ -119,6 +122,19 @@ export default function Topnav({
     logout();
     window.location.href = '/login';
   };
+
+  // Charger l'utilisateur depuis localStorage
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        setCurrentUser(parsed);
+      }
+    } catch (err) {
+      console.error("Erreur lors de la lecture de localStorage → user", err);
+    }
+  }, []);
 
   // Filtrer les pages en fonction de la recherche
   useEffect(() => {
@@ -141,7 +157,6 @@ export default function Topnav({
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
       }
-      // Vérifier à la fois desktop et mobile
       const isClickInsideDesktop = searchDropdownRef.current?.contains(event.target as Node);
       const isClickInsideMobile = searchDropdownMobileRef.current?.contains(event.target as Node);
       
@@ -170,7 +185,6 @@ export default function Topnav({
 
   const handleSearch = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && filteredPages.length > 0) {
-      // Rediriger vers la page sélectionnée
       window.location.href = filteredPages[selectedIndex].href;
       setSearchQuery('');
       setIsSearchFocused(false);
@@ -195,7 +209,6 @@ export default function Topnav({
   const handlePageClick = (href: string) => {
     setSearchQuery('');
     setIsSearchFocused(false);
-    // Utiliser setTimeout pour s'assurer que l'état est mis à jour avant la navigation
     setTimeout(() => {
       window.location.href = href;
     }, 50);
@@ -209,6 +222,81 @@ export default function Topnav({
     acc[page.category].push(page);
     return acc;
   }, {} as Record<string, SearchablePage[]>);
+
+  const getProfilePath = () => {
+    const role = currentUser?.role?.toLowerCase?.() || user?.role?.toLowerCase?.();
+
+    if (!role) return "/dashboard/profile";
+
+    if (role === "regisseur" || role === "percepteur") {
+      return "/dashboard/regisseur/profile";
+    }
+    
+    if (role === "directeur") {
+      return "/dashboard/directeur/profile";
+    }
+    
+    if (role === "ordonnateur") {
+      return "/dashboard/ordo/profile";
+    }
+    
+    if (role === "regisseur_principal") {
+      return "/dashboard/regisseur_principal/profile";
+    }
+
+    return "/dashboard/profile";
+  };
+
+  const getAidePath = () => {
+    const role = currentUser?.role?.toLowerCase?.() || user?.role?.toLowerCase?.();
+
+    if (!role) return "/dashboard/aide";
+
+    if (role === "regisseur" || role === "percepteur") {
+      return "/dashboard/regisseur/aide";
+    }
+    
+    if (role === "directeur") {
+      return "/dashboard/directeur/aide";
+    }
+    
+    if (role === "ordonnateur") {
+      return "/dashboard/ordo/aide";
+    }
+    
+    if (role === "regisseur_principal") {
+      return "/dashboard/regisseur_principal/aide";
+    }
+
+    return "/dashboard/aide";
+  };
+
+  const getNotePath = () => {
+    const role = currentUser?.role?.toLowerCase?.() || user?.role?.toLowerCase?.();
+
+    if (!role) return "/dashboard/note";
+
+    if (role === "regisseur" || role === "percepteur") {
+      return "/dashboard/regisseur/note";
+    }
+    
+    if (role === "directeur") {
+      return "/dashboard/directeur/note";
+    }
+    
+    if (role === "ordonnateur") {
+      return "/dashboard/ordo/note";
+    }
+    
+    if (role === "regisseur_principal") {
+      return "/dashboard/regisseur_principal/note";
+    }
+
+    return "/dashboard/note";
+  };
+
+  // Utilisateur actif (currentUser ou user par défaut)
+  const activeUser = currentUser || user;
 
   return (
     <>
@@ -362,7 +450,7 @@ export default function Topnav({
                   <div className="relative">
                     <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center shadow-sm">
                       <span className="text-white text-sm font-semibold">
-                        {user.name?.charAt(0).toUpperCase() || 'U'}
+                        {activeUser?.nom?.charAt(0)?.toUpperCase() || 'U'}
                       </span>
                     </div>
                     {/* Point vert en bas à droite */}
@@ -372,10 +460,10 @@ export default function Topnav({
                   {/* Infos utilisateur */}
                   <div className="hidden sm:flex flex-col items-start">
                     <span className="text-sm font-medium text-gray-900 leading-tight">
-                      {user.name}
+                      {activeUser?.nom || 'Utilisateur'}
                     </span>
                     <span className="text-xs text-gray-500 leading-tight">
-                      {user.role || 'Utilisateur'}
+                      {activeUser?.role || 'Utilisateur'}
                     </span>
                   </div>
                   
@@ -392,29 +480,46 @@ export default function Topnav({
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center shadow-sm">
                           <span className="text-white text-base font-semibold">
-                            {user.name?.charAt(0).toUpperCase() || 'U'}
+                            {activeUser?.nom?.charAt(0)?.toUpperCase() || 'U'}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
-                          <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {activeUser?.nom || 'Utilisateur'}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {activeUser?.email || ''}
+                          </p>
                         </div>
                       </div>
-                      {user.role && (
+                      {activeUser?.role && (
                         <div className="mt-2 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
-                          {user.role}
+                          {activeUser.role}
                         </div>
                       )}
                     </div>
                     
                     <div className="py-1">
-                      <Link href="/profile" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                      <Link
+                        href={getProfilePath()}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
                         <User className="w-4 h-4 mr-3 text-gray-400" />
                         Mon Profil
                       </Link>
-                      <Link href="/settings" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                        <Settings className="w-4 h-4 mr-3 text-gray-400" />
-                        Paramètres
+                      <Link
+                        href={getNotePath()}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Notebook className="w-4 h-4 mr-3 text-gray-400" />
+                        Note
+                      </Link>
+                      <Link
+                        href={getAidePath()}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <HelpCircle className="w-4 h-4 mr-3 text-gray-400" />
+                        Aide
                       </Link>
                     </div>
                     

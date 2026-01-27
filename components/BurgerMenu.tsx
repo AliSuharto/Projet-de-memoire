@@ -2,8 +2,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, ChevronDown, ChevronRight, User } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, User, LogOut } from 'lucide-react';
 import { NavigationItem } from '@/app/types/config';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 interface BurgerMenuProps {
   isOpen: boolean;
@@ -14,7 +15,7 @@ interface BurgerMenuProps {
     alt: string;
   };
   user?: {
-    name: string;
+    nom: string;
     email: string;
     avatar?: string;
   };
@@ -30,12 +31,13 @@ export default function BurgerMenu({
     alt: 'Logo'
   },
   user = {
-    name: 'John Doe',
+    nom: 'John Doe',
     email: 'john@example.com'
   },
   isAuthenticated = false,
 }: BurgerMenuProps) {
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+  const { logout } = useAuth();
 
   const toggleExpanded = (index: number) => {
     const newExpanded = new Set(expandedItems);
@@ -45,6 +47,12 @@ export default function BurgerMenu({
       newExpanded.add(index);
     }
     setExpandedItems(newExpanded);
+  };
+
+  const handleLogout = () => {
+    logout();
+    onClose();
+    window.location.href = '/login';
   };
 
   if (!isOpen) return null;
@@ -58,9 +66,9 @@ export default function BurgerMenu({
       />
       
       {/* Menu Sidebar */}
-      <div className="fixed top-0 left-0 h-full w-80 bg-white shadow-xl z-50 md:hidden transform animate-in slide-in-from-left duration-300">
-        {/* Header du menu */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
+      <div className="fixed top-0 left-0 h-full w-80 bg-white shadow-xl z-50 md:hidden transform animate-in slide-in-from-left duration-300 flex flex-col">
+        {/* Header du menu - fixe */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50 flex-shrink-0">
           <div className="flex items-center space-x-3">
             <Image
               src={logo.src}
@@ -83,8 +91,8 @@ export default function BurgerMenu({
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-2">
+        {/* Navigation - scrollable */}
+        <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           <div className="space-y-1 px-2">
             {navigationItem.map((item, index) => {
               const Icon = item.icon;
@@ -164,38 +172,31 @@ export default function BurgerMenu({
           </div>
         </nav>
 
-        {/* Footer utilisateur */}
+        {/* Footer utilisateur - fixe */}
         {isAuthenticated && (
-          <div className="border-t border-gray-200 bg-gray-50 p-4">
+          <div className="border-t border-gray-200 bg-gray-50 p-4 flex-shrink-0">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <User className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-sm font-semibold">
+                  {user?.nom?.charAt(0)?.toUpperCase() || 'U'}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
-                <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {user?.nom || 'Utilisateur'}
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  {user?.email || ''}
+                </p>
               </div>
             </div>
-            <div className="mt-3 space-y-1">
-              <Link 
-                href="/profile" 
-                className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                onClick={onClose}
-              >
-                Mon Profil
-              </Link>
-              <Link 
-                href="/settings" 
-                className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                onClick={onClose}
-              >
-                Paramètres
-              </Link>
+            <div className="mt-3 space-y-1">   
               <button 
-                className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                onClick={onClose}
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center space-x-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
               >
-                Déconnexion
+                <LogOut className="w-4 h-4" />
+                <span>Déconnexion</span>
               </button>
             </div>
           </div>

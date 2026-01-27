@@ -1,11 +1,12 @@
 'use client';
+
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Calendar, Filter, Download, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, Calendar, Download, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import API_BASE_URL from '@/services/APIbaseUrl';
 
 interface Receipt {
   nom: string;
-  disponibilite:  'Utilisé' | 'Disponible';
+  disponibilite: 'Utilisé' | 'Disponible';
   dateUtilisation?: string;
   marchand?: string;
   montant?: string;
@@ -16,20 +17,20 @@ const ReceiptManager: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<'Tous' | 'Utilisé' | 'Disponible'>('Tous');
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // États pour la pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Fonction pour décoder le JWT et extraire le userId
   const getUserIdFromToken = (): string | null => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
-        return null;
-      }
-      
-      // Décoder le JWT (partie payload)
+      if (!token) return null;
+
       const base64Url = token.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
       const jsonPayload = decodeURIComponent(
@@ -38,7 +39,7 @@ const ReceiptManager: React.FC = () => {
           .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
           .join('')
       );
-      
+
       const payload = JSON.parse(jsonPayload);
       return payload.userId || payload.id || payload.sub || null;
     } catch (error) {
@@ -52,10 +53,9 @@ const ReceiptManager: React.FC = () => {
     const fetchQuittances = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         const userId = getUserIdFromToken();
-        
         if (!userId) {
           setError('Token non trouvé ou invalide. Veuillez vous reconnecter.');
           setLoading(false);
@@ -76,18 +76,13 @@ const ReceiptManager: React.FC = () => {
         }
 
         const data = await response.json();
-        console.log('Données des quittances reçues:', data);
-        
-        // Transformer les données de l'API selon la structure attendue
-        // Adapter selon la structure réelle de votre API
         const transformedData: Receipt[] = data.map((item: any) => ({
-            nom: String(item.nom || item.nom || item.id || "").trim(),
-            disponibilite: item.status === 'UTILISE' ? 'Utilisé' : 'Disponible',
-            dateUtilisation: item.dateUtilisation || item.date || "",
-            marchand: item.nomMarchand || item.client || item.nomClient || "",
-            montant: item.montant ? `${item.montant.toLocaleString()} Ar` : item.montantFormate || ""
-            }));
-
+          nom: String(item.nom || item.id || "").trim(),
+          disponibilite: item.status === 'UTILISE' ? 'Utilisé' : 'Disponible',
+          dateUtilisation: item.dateUtilisation || item.date || "",
+          marchand: item.nomMarchand || item.client || item.nomClient || "",
+          montant: item.montant ? `${item.montant.toLocaleString()} Ar` : item.montantFormate || ""
+        }));
 
         setReceipts(transformedData);
       } catch (err) {
@@ -101,13 +96,36 @@ const ReceiptManager: React.FC = () => {
     fetchQuittances();
   }, []);
 
+  // Fonction pour trier les reçus selon le format 100A, 100B, ..., 101A, ...
+  const sortReceipts = (receipts: Receipt[]) => {
+    return [...receipts].sort((a, b) => {
+      const matchA = a.nom.match(/^(\d+)([A-E]?)$/i);
+      const matchB = b.nom.match(/^(\d+)([A-E]?)$/i);
+
+      if (!matchA || !matchB) {
+        return a.nom.localeCompare(b.nom);
+      }
+
+      const numA = parseInt(matchA[1]);
+      const numB = parseInt(matchB[1]);
+      const letterA = matchA[2]?.toUpperCase() || '';
+      const letterB = matchB[2]?.toUpperCase() || '';
+
+      if (numA !== numB) {
+        return numA - numB;
+      }
+
+      return letterA.localeCompare(letterB);
+    });
+  };
+
   const filteredReceipts = useMemo(() => {
-    return receipts.filter(receipt => {
+    const filtered = receipts.filter(receipt => {
       const matchesSearch = receipt.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           receipt.marchand?.toLowerCase().includes(searchTerm.toLowerCase());
-      
+        receipt.marchand?.toLowerCase().includes(searchTerm.toLowerCase());
+
       const matchesFilter = filterStatus === 'Tous' || receipt.disponibilite === filterStatus;
-      
+
       let matchesDate = true;
       if (dateDebut && receipt.dateUtilisation) {
         matchesDate = receipt.dateUtilisation >= dateDebut;
@@ -115,28 +133,30 @@ const ReceiptManager: React.FC = () => {
       if (dateFin && receipt.dateUtilisation) {
         matchesDate = matchesDate && receipt.dateUtilisation <= dateFin;
       }
-      
+
       return matchesSearch && matchesFilter && matchesDate;
     });
+
+    return sortReceipts(filtered);
   }, [receipts, searchTerm, filterStatus, dateDebut, dateFin]);
+
+  // Calculs de pagination
+  const totalPages = Math.ceil(filteredReceipts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentReceipts = filteredReceipts.slice(startIndex, endIndex);
+
+  // Réinitialiser à la page 1 quand les filtres changent
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, dateDebut, dateFin]);
 
   const stats = useMemo(() => {
     const total = receipts.length;
     const utilise = receipts.filter(r => r.disponibilite === 'Utilisé').length;
     const disponible = receipts.filter(r => r.disponibilite === 'Disponible').length;
-    
-    const filteredUtilise = filteredReceipts.filter(r => r.disponibilite === 'Utilisé').length;
-    const filteredDisponible = filteredReceipts.filter(r => r.disponibilite === 'Disponible').length;
-    
-    return { 
-      total, 
-      utilise, 
-      disponible,
-      filteredTotal: filteredReceipts.length,
-      filteredUtilise,
-      filteredDisponible
-    };
-  }, [receipts, filteredReceipts]);
+    return { total, utilise, disponible };
+  }, [receipts]);
 
   const resetFilters = () => {
     setSearchTerm('');
@@ -145,10 +165,25 @@ const ReceiptManager: React.FC = () => {
     setDateFin('');
   };
 
-  // Affichage du chargement
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
           <p className="text-gray-600 text-lg">Chargement des quittances...</p>
@@ -157,17 +192,18 @@ const ReceiptManager: React.FC = () => {
     );
   }
 
-  // Affichage de l'erreur
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-6">
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-800 mb-2 text-center">Erreur</h2>
-          <p className="text-gray-600 text-center mb-6">{error}</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertCircle className="w-8 h-8 text-red-500" />
+            <h2 className="text-2xl font-bold text-gray-800">Erreur</h2>
+          </div>
+          <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg"
           >
             Réessayer
           </button>
@@ -177,163 +213,131 @@ const ReceiptManager: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
       <div className="max-w-7xl mx-auto">
         {/* En-tête */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Gestion des Quittances</h1>
-          <p className="text-gray-600">Suivi et gestion des numéros de reçu</p>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Mes quittances</h1>
         </div>
 
-        {/* Statistiques compactes */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <p className="text-sm text-gray-600 mb-1">Total</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600 mb-1">Utilisés</p>
-              <p className="text-2xl font-bold text-green-600">{stats.utilise}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600 mb-1">Disponibles</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.disponible}</p>
-            </div>
-            
+        {/* Statistiques */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-xl p-6 shadow-lg border-l-4 border-blue-500">
+            <div className="text-sm text-gray-600 font-medium mb-1">Total</div>
+            <div className="text-3xl font-bold text-gray-800">{stats.total}</div>
+          </div>
+          <div className="bg-white rounded-xl p-6 shadow-lg border-l-4 border-green-500">
+            <div className="text-sm text-gray-600 font-medium mb-1">Disponibles</div>
+            <div className="text-3xl font-bold text-gray-800">{stats.disponible}</div>
+          </div>
+          <div className="bg-white rounded-xl p-6 shadow-lg border-l-4 border-orange-500">
+            <div className="text-sm text-gray-600 font-medium mb-1">Utilisés</div>
+            <div className="text-3xl font-bold text-gray-800">{stats.utilise}</div>
           </div>
         </div>
 
         {/* Barre de recherche et filtres */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Rechercher par numéro ou marchand..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
               />
             </div>
-            
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-            >
-              <Filter className="w-5 h-5" />
-              Filtres
-            </button>
-          </div>
 
-          {/* Filtres avancés */}
-          {showFilters && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Statut
-                  </label>
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value as any)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-                  >
-                    <option value="Tous">Tous</option>
-                    <option value="Utilisé">Utilisé</option>
-                    <option value="Disponible">Disponible</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date début
-                  </label>
-                  <input
-                    type="date"
-                    value={dateDebut}
-                    onChange={(e) => setDateDebut(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date fin
-                  </label>
-                  <input
-                    type="date"
-                    value={dateFin}
-                    onChange={(e) => setDateFin(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-                  />
-                </div>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="date"
+                  value={dateDebut}
+                  onChange={(e) => setDateDebut(e.target.value)}
+                  placeholder="Date début"
+                  className="pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                />
               </div>
-
-              <div className="mt-4 flex gap-3">
-                <button
-                  onClick={resetFilters}
-                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  Réinitialiser
-                </button>
+              
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="date"
+                  value={dateFin}
+                  onChange={(e) => setDateFin(e.target.value)}
+                  placeholder="Date fin"
+                  className="pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                />
               </div>
             </div>
+          </div>
+
+          {(dateDebut || dateFin || filterStatus !== 'Tous') && (
+            <button
+              onClick={resetFilters}
+              className="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Réinitialiser les filtres
+            </button>
           )}
         </div>
 
-        {/* Résultats filtrés */}
-        {(searchTerm || filterStatus !== 'Tous' || dateDebut || dateFin) && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-blue-800">
-              <span className="font-semibold">{stats.filteredTotal}</span> résultat(s) trouvé(s) • 
-              <span className="ml-2 font-semibold">{stats.filteredUtilise}</span> utilisé(s) • 
-              <span className="ml-2 font-semibold">{stats.filteredDisponible}</span> disponible(s)
-            </p>
-          </div>
-        )}
-
         {/* Tableau */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
                     Numéro de Reçu
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Disponibilité
+                  <th className="px-6 py-4 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold uppercase tracking-wider">
+                        Disponibilité
+                      </span>
+                      <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value as any)}
+                        className="px-2 py-1 text-xs border border-gray-300 rounded bg-white text-gray-700 hover:bg-gray-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                      >
+                        <option value="Tous">Tous</option>
+                        <option value="Utilisé">Utilisé</option>
+                        <option value="Disponible">Disponible</option>
+                      </select>
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
                     Date Utilisation
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
                     Marchand
                   </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
                     Montant
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredReceipts.map((receipt, index) => (
+                {currentReceipts.map((receipt, index) => (
                   <tr 
-                    key={receipt.nom}
-                    className={`hover:bg-gray-50 transition-colors ${
-                      index % 2 === 0 ? 'bg-white' : 'bg-gray-25'
-                    }`}
+                    key={index} 
+                    className="hover:bg-blue-50 transition-colors"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="font-semibold text-gray-800">{receipt.nom}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                        receipt.disponibilite === 'Utilisé'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-blue-100 text-blue-800'
-                      }`}>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          receipt.disponibilite === 'Disponible'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-orange-100 text-orange-800'
+                        }`}
+                      >
                         {receipt.disponibilite}
                       </span>
                     </td>
@@ -344,42 +348,105 @@ const ReceiptManager: React.FC = () => {
                           {new Date(receipt.dateUtilisation).toLocaleDateString('fr-FR')}
                         </div>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        '—'
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                      {receipt.marchand || <span className="text-gray-400">—</span>}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {receipt.marchand || '—'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-800">
-                      {receipt.montant || <span className="text-gray-400">—</span>}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                      {receipt.montant || '—'}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            {currentReceipts.length === 0 && (
+              <div className="text-center py-16">
+                <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">Aucune quittance trouvée</h3>
+                <p className="text-gray-500">Essayez de modifier vos critères de recherche</p>
+              </div>
+            )}
           </div>
 
-          {filteredReceipts.length === 0 && (
-            <div className="py-12 text-center">
-              <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 text-lg">Aucun reçu trouvé</p>
-              <p className="text-gray-400 text-sm mt-1">Essayez de modifier vos critères de recherche</p>
+          {/* Pagination */}
+          {filteredReceipts.length > 0 && (
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-gray-600">
+                  Affichage de <span className="font-semibold">{startIndex + 1}</span> à{' '}
+                  <span className="font-semibold">{Math.min(endIndex, filteredReceipts.length)}</span> sur{' '}
+                  <span className="font-semibold">{filteredReceipts.length}</span> résultat(s)
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                  >
+                    <option value={5}>5 par page</option>
+                    <option value={10}>10 par page</option>
+                    <option value={20}>20 par page</option>
+                    <option value={50}>50 par page</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={goToPreviousPage}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => goToPage(page)}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                            currentPage === page
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return (
+                        <span key={page} className="px-2 text-gray-500">
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  })}
+
+                  <button
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
-
-        {/* Pied de page avec actions */}
-        {filteredReceipts.length > 0 && (
-          <div className="mt-6 flex justify-between items-center bg-white rounded-xl shadow-md p-4">
-            <p className="text-sm text-gray-600">
-              Affichage de <span className="font-semibold">{filteredReceipts.length}</span> sur <span className="font-semibold">{receipts.length}</span> reçu(s)
-            </p>
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-              <Download className="w-4 h-4" />
-              Exporter
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

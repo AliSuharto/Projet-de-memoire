@@ -222,11 +222,9 @@ const PlaceModal: React.FC<{ place: Place | null; onClose: () => void }> = ({ pl
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 modal-overlay flex items-center justify-center z-50"
-      onClick={onClose}
-    >
+      className="fixed inset-0 bg-black bg-opacity-50 modal-overlay flex items-center justify-center z-50" onClick={onClose}>
       <div
-        className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
+        className="bg-white rounded-lg p-6 modal-overlay max-w-md w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -236,7 +234,7 @@ const PlaceModal: React.FC<{ place: Place | null; onClose: () => void }> = ({ pl
         </div>
 
         {/* Contenu */}
-        <div className="space-y-4">
+        <div className="space-y-4 modal-overlay">
           {/* Numéro de place */}
           <div className="flex items-center gap-3">
             <MapPin className="w-5 h-5 text-gray-400" />

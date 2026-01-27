@@ -18,7 +18,7 @@ export default function RegisseurLayout({ children }: { children: React.ReactNod
           isAuthenticated={true}
           notifications={3}
           user={{
-            name: user?.nom || 'Regisseur',
+            nom: user?.nom || 'Regisseur',
             email: user?.email || 'regisseur@commune.mg'
           }}
         />

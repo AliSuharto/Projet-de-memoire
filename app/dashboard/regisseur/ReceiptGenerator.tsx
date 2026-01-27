@@ -66,146 +66,169 @@ export default function ReceiptGenerator({ data, onCancel, onComplete }: Receipt
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4',
+      format: [80, 120], // Format ticket de caisse (80mm x 120mm)
     });
 
-    const imgWidth = 190;
+    const pdfWidth = 80;
+    const pdfHeight = 120;
+    const imgWidth = pdfWidth - 10; // Marges de 5mm de chaque côté
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+    // Centrer l'image
+    const xOffset = 5;
+    const yOffset = 5;
+
+    pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidth, imgHeight);
     pdf.save(`quittance_${data.receiptNumber}.pdf`);
   };
 
-  // Composant réutilisable pour le reçu (évite la duplication de code)
+  // Composant réutilisable pour le reçu (format ticket de caisse)
   const ReceiptContent = () => ( 
-    <div  style={{ 
-      
+    <div style={{ 
       backgroundColor: '#ffffff', 
-      border: '2px solid #d1d5db', 
-      borderRadius: '8px', 
-      padding: '32px', 
-      maxWidth: '512px', 
+      padding: '12px', 
+      width: '280px', // ~80mm à 96dpi
       margin: '0 auto',
-      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+      fontFamily: 'Arial, sans-serif'
     }}>
       {/* En-tête */}
       <div style={{ 
         textAlign: 'center', 
-        marginBottom: '24px', 
-        paddingBottom: '16px', 
-        borderBottom: '2px solid #d1d5db' 
+        marginBottom: '10px', 
+        paddingBottom: '8px', 
+        borderBottom: '1px solid #000'
       }}>
         <h1 style={{ 
-          fontSize: '18px', 
+          fontSize: '11px', 
           fontWeight: 'bold', 
-          color: '#111827', 
-          marginBottom: '4px' 
+          color: '#000', 
+          marginBottom: '2px',
+          lineHeight: '1.3'
         }}>
-          Commune Urbaine de Diego Suarez
+          Commune Urbaine de
         </h1>
-        <div style={{ 
-          height: '2px', 
-          width: '160px', 
-          backgroundColor: '#9ca3af', 
-          margin: '8px auto 0' 
-        }}></div>
+        <h1 style={{ 
+          fontSize: '11px', 
+          fontWeight: 'bold', 
+          color: '#000',
+          lineHeight: '1.3'
+        }}>
+          Diego Suarez
+        </h1>
       </div>
 
-      {/* Infos principales */}
+      {/* Date et N° quittance */}
       <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: '1fr 1fr', 
-        gap: '16px', 
-        marginBottom: '20px' 
+        marginBottom: '10px',
+        fontSize: '9px'
       }}>
-        <div>
-          <p style={{ fontSize: '12px', color: '#4b5563', marginBottom: '4px' }}>
-            Date de Paiement :
-          </p>
-          <p style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827' }}>
-            {formatDate(data.paymentDate)}
-          </p>
+        <div style={{ marginBottom: '4px' }}>
+          <span style={{ fontWeight: '600' }}>Date : </span>
+          <span>{formatDate(data.paymentDate)}</span>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <p style={{ fontSize: '12px', color: '#4b5563', marginBottom: '4px' }}>
-            N° quittance :
-          </p>
-          <p style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827' }}>
-            {data.receiptNumber}
-          </p>
+        <div>
+          <span style={{ fontWeight: '600' }}>N° quittance : </span>
+          <span>{data.receiptNumber}</span>
         </div>
       </div>
 
-      {/* Détails */}
-      <div style={{ marginBottom: '20px' }}>
-        <p style={{ fontSize: '14px', color: '#111827', marginBottom: '8px' }}>
-          <span style={{ fontWeight: '600' }}>Reçu de :</span> {data.merchantName}
-        </p>
+      {/* Séparateur */}
+      <div style={{ borderTop: '1px dashed #000', marginBottom: '10px' }}></div>
+
+      {/* Détails marchand */}
+      <div style={{ marginBottom: '10px', fontSize: '9px' }}>
+        <div style={{ marginBottom: '4px' }}>
+          <span style={{ fontWeight: '600' }}>Reçu de : </span>
+          <span>{data.merchantName}</span>
+        </div>
         {data.motif && (
-          <p style={{ fontSize: '14px', color: '#111827' }}>
-            <span style={{ fontWeight: '600' }}>Pour :</span> {data.motif}
-          </p>
+          <div style={{ marginBottom: '4px' }}>
+            <span style={{ fontWeight: '600' }}>Pour : </span>
+            <span>{data.motif}</span>
+          </div>
+        )}
+        {data.place && (
+          <div style={{ marginBottom: '4px' }}>
+            <span style={{ fontWeight: '600' }}>Place : </span>
+            <span>{data.place}</span>
+          </div>
+        )}
+        {data.category && (
+          <div>
+            <span style={{ fontWeight: '600' }}>Catégorie : </span>
+            <span>{data.category}</span>
+          </div>
         )}
       </div>
 
+      {/* Séparateur */}
+      <div style={{ borderTop: '1px dashed #000', marginBottom: '10px' }}></div>
+
       {/* Montants */}
       <div style={{ 
-        backgroundColor: '#f9fafb', 
-        border: '1px solid #d1d5db', 
-        borderRadius: '8px', 
-        padding: '16px', 
-        marginBottom: '20px' 
+        marginBottom: '10px',
+        fontSize: '9px'
       }}>
-        <p style={{ fontSize: '12px', color: '#111827', marginBottom: '8px' }}>
-          <span style={{ fontWeight: '600' }}>Somme en lettres :</span>
-        </p>
-        <p style={{ fontSize: '14px', color: '#111827', marginBottom: '12px' }}>
-          {data.amountText}
-        </p>
+        <div style={{ marginBottom: '6px' }}>
+          <div style={{ fontWeight: '600', marginBottom: '3px' }}>Somme en lettres :</div>
+          <div style={{ fontStyle: 'italic' }}>{data.amountText}</div>
+        </div>
+        
         <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          paddingTop: '8px', 
-          borderTop: '1px solid #d1d5db' 
+          marginTop: '8px',
+          paddingTop: '8px',
+          borderTop: '1px solid #000',
+          textAlign: 'center'
         }}>
-          <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
-            Somme en chiffres :
-          </span>
-          <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827' }}>
+          <div style={{ fontSize: '8px', marginBottom: '2px' }}>MONTANT</div>
+          <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
             {data.amount} Ar
-          </span>
+          </div>
         </div>
       </div>
+
+      {/* Séparateur */}
+      <div style={{ borderTop: '1px dashed #000', marginBottom: '10px' }}></div>
 
       {/* Pied de page */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
-        alignItems: 'flex-end' 
+        alignItems: 'center',
+        fontSize: '9px'
       }}>
-        <div>
-          <p style={{ fontSize: '12px', color: '#4b5563', marginBottom: '4px' }}>
-            Nom du régisseur :
-          </p>
-          <p style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ marginBottom: '2px', fontSize: '8px', color: '#666' }}>
+            Régisseur :
+          </div>
+          <div style={{ fontWeight: '600', fontSize: '9px' }}>
             {data.agentName}
-          </p>
+          </div>
         </div>
 
         <div style={{ 
-          border: '1px solid #d1d5db', 
-          padding: '8px', 
-          backgroundColor: '#ffffff', 
-          borderRadius: '4px' 
+          border: '1px solid #000', 
+          padding: '4px', 
+          backgroundColor: '#fff'
         }}>
           <QRCodeSVG 
             value={JSON.stringify(qrData)} 
-            size={96} 
+            size={50} 
             level="M" 
             includeMargin={false} 
           />
         </div>
+      </div>
+
+      {/* Message de fin */}
+      <div style={{ 
+        textAlign: 'center', 
+        marginTop: '10px',
+        paddingTop: '8px',
+        borderTop: '1px solid #000',
+        fontSize: '8px'
+      }}>
+        Merci pour votre paiement
       </div>
     </div>
   );

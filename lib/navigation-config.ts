@@ -473,11 +473,7 @@ REGISSEUR: [
       icon: FileText,
       label: "Quittances"
     },
-    {
-      href: "/dashboard/regisseur/recu",
-      icon: Settings,
-      label: "Recus"
-    }
+    
   ] as UnifiedNavItem[]
 };
 

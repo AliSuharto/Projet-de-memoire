@@ -5,6 +5,7 @@ import Footer from '@/components/Footer';
 import SideNav from '@/components/SideNav';
 import Topnav from '@/components/TopNav';
 import { useRoleNavigation } from '@/hooks/useRoleNavigation';
+import API_BASE_URL from '@/services/APIbaseUrl';
 import { useState, useEffect } from 'react';
 
 export default function DirecteurLayout({ children }: { children: React.ReactNode }) {
@@ -15,7 +16,7 @@ export default function DirecteurLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const fetchValidationsEnAttente = async () => {
       try {
-        const response = await fetch('http://localhost:8080/api/sessions/validationEnAttente');
+        const response = await fetch(`${API_BASE_URL}/sessions/validationEnAttente`);
         
         if (response.ok) {
           const data = await response.json();

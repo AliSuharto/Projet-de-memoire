@@ -55,6 +55,8 @@ interface Marchand {
   dateEnregistrement?: string;
   estEndette?: boolean | null;
   hasPlace?: boolean;
+  nif?: string;
+  stat?: string;
 }
 
 interface Paiement {
@@ -208,388 +210,6 @@ const StatCard: React.FC<{
   </div>
 );
 
-const InfoRow: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (
-  <div className="py-2 border-b last:border-none">
-    <p className="text-sm text-gray-500">{label}</p>
-    <p className="text-base font-semibold text-gray-900">{value}</p>
-  </div>
-);
-
-// =======================
-// Composant Détails Marchand
-// =======================
-const MarchandDetailView: React.FC<{
-  marchand: Marchand;
-  onBack: () => void;
-  onEdit: () => void;
-  onGenerateCard: () => void;
-}> = ({ marchand, onBack, onEdit, onGenerateCard }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'history'>('overview');
-  const [paiements, setPaiements] = useState<Paiement[]>([]);
-  const [loadingPaiements, setLoadingPaiements] = useState(false);
-
-  useEffect(() => {
-    if (activeTab === 'payments') {
-      loadPaiements();
-    }
-  }, [activeTab]);
-
-  const loadPaiements = async () => {
-  try {
-    setLoadingPaiements(true);
-    console.log("Loading payments for marchand ID:", marchand.id);
-
-    const response = await fetch(`${API_BASE_URL}/paiements/marchand/${marchand.id}`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-    });
-
-    if (!response.ok) throw new Error("Erreur lors du chargement des paiements");
-
-    const result = await response.json();
-
-    if (!result || result.length === 0) {
-      setPaiements([]); // 👉 Important : pas de données fallback ici
-      return;
-    }
-
-    const mapped = result.map((p: any) => ({
-      id: p.id,
-      date: p.datePaiement ? p.datePaiement.substring(0, 10) : "-",
-      montant: p.montant ?? 0,
-      type: p.typePaiement ?? "—",
-      regisseur: p.nomAgent ?? "—",
-      methode: p.modePaiement ?? "—",
-      statut: p.motif ?? "—",
-      recu: p.recuNumero ?? "—",
-      mois: p.moisdePaiement ?? "—",
-      place: p.nomPlace ?? "—",
-    }));
-
-    setPaiements(mapped);
-   
-
-  } catch (error) {
-    console.error("Erreur chargement paiements:", error);
-
-    setPaiements([]); // 👉 Pas de fallback, donc affichage "aucun paiement"
-  } finally {
-    setLoadingPaiements(false);
-  }
-};
-
-
-  const hasDebt = marchand.estEndette === true;
-  const hasPlace = marchand.hasPlace === true;
-  const places = marchand.places || [];
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <button 
-            onClick={onBack}
-            className="flex items-center text-blue-100 hover:text-white mb-4 transition"
-          >
-            <ArrowLeft size={20} className="mr-2" />
-            Retour à la liste
-          </button>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-white flex items-center justify-center">
-                {marchand.photo ? (
-                  <img src={marchand.photo} alt={marchand.nom} className="w-full h-full rounded-full object-cover" />
-                ) : (
-                  <User size={48} className="text-gray-400" />
-                )}
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold mb-2">{marchand.nom} {marchand.prenom}</h1>
-                <div className="flex items-center space-x-4 text-blue-100">
-                  {hasPlace && places.length > 0 && (
-                    <span className="flex items-center">
-                      <MapPin size={16} className="mr-1" />
-                      Place {places[0].nom}, 
-                      Zone {places[0].zoneName ? ` - ${places[0].zoneName}` : ''},
-                      Hall {places[0].salleName ? ` - ${places[0].salleName}` : ''}
-                      et marchee {places[0].marcheeName ? ` - ${places[0].marcheeName}` : ''}
-                    </span>
-                  )}
-                  
-                </div>
-              </div>
-            </div>
-            
-            <div className="text-right">
-              <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${
-                hasDebt ? 'bg-red-500' : 'bg-green-500'
-              }`}>
-                {hasDebt ? <XCircle size={16} className="mr-2" /> : <CheckCircle size={16} className="mr-2" />}
-                {hasDebt ? 'Endetté' : 'À jour'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          
-          <StatCard 
-            icon={Calendar}
-            label="Date debut de contrat"
-            value={formatShortDate(places[0]?.dateDebutOccupation)}
-            subValue=""
-            color="#3b82f6"
-          />
-          <StatCard 
-            icon={TrendingUp}
-            label="Catégorie"
-            value={places[0]?.categorieName}
-            subValue={`montant: ${places[0]?.montant }Ar`}
-            color="#3b82f6"
-          />
-          <StatCard 
-            icon={CreditCard}
-            label="Statut Paiement"
-            value={hasDebt ? "Dette" : "OK"}
-            subValue={hasDebt ? "En retard" : "Paiements à jour"}
-            color={hasDebt ? "#ef4444" : "#10b981"}
-          />
-          <StatCard 
-            icon={Phone}
-            label="Contact"
-            value={marchand.numTel1 ? "Disponible" : "N/A"}
-            subValue={marchand.numTel1 || "Non renseigné"}
-            color="#f59e0b"
-          />
-        </div>
-
-        {/* Alerte dette */}
-        {hasDebt && (
-          <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mb-8">
-            <div className="flex items-center">
-              <XCircle className="text-red-500 mr-3" size={24} />
-              <div className="flex-1">
-                <h3 className="font-bold text-red-900">Paiements en retard</h3>
-                <p className="text-red-700 text-sm mt-1">
-                  Ce marchand a des paiements en attente
-                </p>
-              </div>
-              <Button className="bg-red-500 hover:bg-red-600">
-                Envoyer rappel
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Onglets */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="border-b border-gray-200">
-            <div className="flex space-x-8 px-6">
-              {[
-                { id: 'overview', label: 'Vue d\'ensemble', icon: FileText },
-                { id: 'payments', label: 'Paiements', icon: CreditCard },
-                { id: 'history', label: 'Historique', icon: Clock }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center py-4 px-2 border-b-2 font-medium text-sm transition ${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <tab.icon size={18} className="mr-2" />
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-6">
-            {activeTab === 'overview' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                    <User className="mr-2 text-blue-600" size={20} />
-                    Informations Personnelles
-                  </h3>
-                  <div className="space-y-3">
-                    <InfoRow label="Nom complet" value={`${marchand.nom} ${marchand.prenom}`} />
-                    <InfoRow label="CIN" value={marchand.numCIN} />
-                    <InfoRow label="Téléphone 1" value={marchand.numTel1 || 'Non renseigné'} />
-                    {marchand.numTel2 && <InfoRow label="Téléphone 2" value={marchand.numTel2} />}
-                    <InfoRow label="Adresse" value={marchand.adress || 'Non renseignée'} />
-                    {marchand.activite && <InfoRow label="Activité" value={marchand.activite} />}
-                    {marchand.description && (
-                      <div className="py-2">
-                        <span className="text-gray-600 block mb-1">Description:</span>
-                        <p className="text-sm text-gray-900">{marchand.description}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                    <MapPin className="mr-2 text-blue-600" size={20} />
-                    Places Occupée
-                  </h3>
-                  {places.length > 0 ? (
-                    <div className="space-y-4">
-                      {places.map((place) => (
-                        <div key={place.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <h4 className="font-bold text-lg text-gray-900">{place.nom}</h4>
-                              <p className="text-sm text-gray-600">
-                                {place.marcheeName}
-                                {place.zoneName && ` - ${place.zoneName}`}
-                                {place.salleName && ` - ${place.salleName}`}
-                              </p>
-                            </div>
-                            <StatusBadge status="Occupée" variant="success" size="sm" />
-                          </div>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Début occupation:</span>
-                              <span className="font-medium">{formatShortDate(place.dateDebutOccupation)}</span>
-                            </div>
-                            {place.categorieName && (
-                              <div className="flex justify-between">
-                                <span className="text-gray-600">Catégorie:</span>
-                                <span className="font-medium">{place.categorieName}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-                      <MapPin className="mx-auto text-gray-400 mb-3" size={48} />
-                      <p className="text-gray-600">Aucune place attribuée</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'payments' && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-bold text-gray-900">Historique des Paiements</h3>
-                  
-                </div>
-
-                {loadingPaiements ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">Chargement...</p>
-                  </div>
-                ) : paiements.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-gray-50 border-b border-gray-200">
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Type</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Montant</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Régisseur</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Motif</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {paiements.map((p) => (
-                          <tr key={p.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-4 text-sm">{formatShortDate(p.date)}</td>
-                            <td className="px-4 py-4 text-sm">{p.type}</td>
-                            <td className="px-4 py-4 text-sm font-semibold">{formatCurrency(p.montant)}</td>
-                            <td className="px-4 py-4 text-sm text-gray-600">{p.regisseur}</td>
-                            <td className="px-4 py-4 text-sm text-gray-600">{p.statut} </td>
-                                   
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-                    <CreditCard className="mx-auto text-gray-400 mb-3" size={48} />
-                    <p className="text-gray-600">Aucun paiement enregistré</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'history' && (
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-6">Historique des Activités</h3>
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <Clock className="text-blue-600" size={20} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">Marchand enregistré</p>
-                      <p className="text-sm text-gray-500 mt-1">{formatDate(marchand.dateEnregistrement)}</p>
-                    </div>
-                  </div>
-                  {places.map((place) => (
-                    <div key={place.id} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
-                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                        <MapPin className="text-green-600" size={20} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">
-                          Attribution de la place {place.nom}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-1">{formatDate(place.dateDebutOccupation)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Actions rapides */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Actions Rapides</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-center">
-              <DollarSign className="mx-auto mb-2 text-blue-600" size={24} />
-              <span className="text-sm font-medium text-gray-700">Paiement</span>
-            </button>
-            <button 
-              onClick={onGenerateCard}
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition text-center"
-            >
-              <CardIcon className="mx-auto mb-2 text-green-600" size={24} />
-              <span className="text-sm font-medium text-gray-700">Générer Carte</span>
-            </button>
-            <button onClick={onEdit} className="p-4 border-2 border-gray-200 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition text-center">
-              <Edit className="mx-auto mb-2 text-yellow-600" size={24} />
-              <span className="text-sm font-medium text-gray-700">Modifier</span>
-            </button>
-            <button className="p-4 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition text-center">
-              <MapPin className="mx-auto mb-2 text-purple-600" size={24} />
-              <span className="text-sm font-medium text-gray-700">Attribuer Place</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // =======================
 // Modal Création
 // =======================
@@ -647,31 +267,55 @@ const CreateMarchandModal: React.FC<{
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  type CreateMarchandPayload = Omit<CreateMarchandForm, "prenom">
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.nom.trim() || !formData.prenom.trim() || !formData.numCIN.trim()) {
-      setError("Veuillez remplir tous les champs obligatoires");
-      return;
-    }
+  e.preventDefault();
 
-    setLoading(true);
-    setError(null);
-    
-    try {
-      await onSubmit(formData);
-      setFormData({
-        nom: "", prenom: "", numCIN: "", adress: "",
-        numTel1: "", activite: "", nif: "", stat: "", description: "",
-      });
-      onClose();
-    } catch (error: any) {
-      setError(error.message || "Erreur lors de la création");
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (
+    !formData.nom.trim() ||
+    !formData.prenom.trim() ||
+    !formData.numCIN.trim()
+  ) {
+    setError("Veuillez remplir tous les champs obligatoires");
+    return;
+  }
+
+  setLoading(true);
+  setError(null);
+
+  try {
+    // ✅ Fusion nom + prénom
+    const payload: CreateMarchandPayload = {
+      ...formData,
+      nom: `${formData.nom.trim()} ${formData.prenom.trim()}`,
+    };
+
+    // ❌ On supprime prénom avant envoi
+    delete (payload as any).prenom;
+
+    await onSubmit(payload);
+
+    // Reset formulaire
+    setFormData({
+      nom: "",
+      prenom: "",
+      numCIN: "",
+      adress: "",
+      numTel1: "",
+      activite: "",
+      nif: "",
+      stat: "",
+      description: "",
+    });
+
+    onClose();
+  } catch (error: any) {
+    setError(error.message || "Erreur lors de la création");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleClose = () => {
     setFormData({
@@ -974,7 +618,7 @@ const getTableColumns = (onGenerateCard: (marchand: Marchand) => void): TableCol
     sortable: true,
     render: (marchand) => (
       <span className="text-sm text-gray-600">
-        {marchand.description || marchand.activite || '-'}
+        {marchand.activite || '-'}
       </span>
     ),
   },
@@ -1067,18 +711,14 @@ const MarchandsManagement: React.FC = () => {
     }
   };
 
-  const handleViewDetails = async (marchand: Marchand) => {
-    try {
-      const fullDetails = await marchandService.getById(marchand.id);
-      setSelectedMarchand(fullDetails);
-    } catch (error: any) {
-      console.error("Erreur détails:", error);
-      setSelectedMarchand(marchand);
-    }
-  };
+const handleViewDetails = (marchand: Marchand) => {
+  // Stocker temporairement dans sessionStorage
+  sessionStorage.setItem('selectedMarchand', JSON.stringify(marchand));
+  router.push(`/dashboard/directeur/marchand/${marchand.id}`);
+};
 
   const handleEdit = (marchand: Marchand) => {
-    router.push(`/dashboard/admin/marchands/${marchand.id}/edit`);
+    router.push(`/dashboard/admin/marchand/${marchand.id}/edit`);
   };
 
   const handleGenerateCard = (marchand: Marchand) => {
@@ -1138,17 +778,7 @@ const MarchandsManagement: React.FC = () => {
     }
   };
 
-  // Si un marchand est sélectionné, afficher sa page de détails
-  if (selectedMarchand) {
-    return (
-      <MarchandDetailView
-        marchand={selectedMarchand}
-        onBack={() => setSelectedMarchand(null)}
-        onEdit={() => handleEdit(selectedMarchand)}
-        onGenerateCard={() => handleGenerateCard(selectedMarchand)}
-      />
-    );
-  }
+  
 
   // Affichage d'erreur
   if (error && !loading && marchands.length === 0) {
