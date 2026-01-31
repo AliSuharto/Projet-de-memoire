@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Calendar, Download, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Calendar, Download, AlertCircle, Loader2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import API_BASE_URL from '@/services/APIbaseUrl';
 
 interface Receipt {
@@ -12,14 +12,16 @@ interface Receipt {
   montant?: string;
 }
 
+type SortOrder = 'asc' | 'desc' | null;
+
 const ReceiptManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'Tous' | 'Utilisé' | 'Disponible'>('Tous');
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>(null);
 
   // États pour la pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -119,12 +121,21 @@ const ReceiptManager: React.FC = () => {
     });
   };
 
+  // Fonction pour gérer le tri par disponibilité
+  const handleSortByDisponibilite = () => {
+    if (sortOrder === null) {
+      setSortOrder('asc');
+    } else if (sortOrder === 'asc') {
+      setSortOrder('desc');
+    } else {
+      setSortOrder(null);
+    }
+  };
+
   const filteredReceipts = useMemo(() => {
     const filtered = receipts.filter(receipt => {
       const matchesSearch = receipt.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
         receipt.marchand?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesFilter = filterStatus === 'Tous' || receipt.disponibilite === filterStatus;
 
       let matchesDate = true;
       if (dateDebut && receipt.dateUtilisation) {
@@ -134,11 +145,27 @@ const ReceiptManager: React.FC = () => {
         matchesDate = matchesDate && receipt.dateUtilisation <= dateFin;
       }
 
-      return matchesSearch && matchesFilter && matchesDate;
+      return matchesSearch && matchesDate;
     });
 
-    return sortReceipts(filtered);
-  }, [receipts, searchTerm, filterStatus, dateDebut, dateFin]);
+    let sorted = sortReceipts(filtered);
+
+    // Appliquer le tri par disponibilité si activé
+    if (sortOrder) {
+      sorted = [...sorted].sort((a, b) => {
+        const valueA = a.disponibilite === 'Disponible' ? 1 : 0;
+        const valueB = b.disponibilite === 'Disponible' ? 1 : 0;
+        
+        if (sortOrder === 'asc') {
+          return valueA - valueB;
+        } else {
+          return valueB - valueA;
+        }
+      });
+    }
+
+    return sorted;
+  }, [receipts, searchTerm, dateDebut, dateFin, sortOrder]);
 
   // Calculs de pagination
   const totalPages = Math.ceil(filteredReceipts.length / itemsPerPage);
@@ -149,7 +176,7 @@ const ReceiptManager: React.FC = () => {
   // Réinitialiser à la page 1 quand les filtres changent
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterStatus, dateDebut, dateFin]);
+  }, [searchTerm, dateDebut, dateFin, sortOrder]);
 
   const stats = useMemo(() => {
     const total = receipts.length;
@@ -160,9 +187,9 @@ const ReceiptManager: React.FC = () => {
 
   const resetFilters = () => {
     setSearchTerm('');
-    setFilterStatus('Tous');
     setDateDebut('');
     setDateFin('');
+    setSortOrder(null);
   };
 
   const goToPage = (page: number) => {
@@ -213,11 +240,11 @@ const ReceiptManager: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6 lg:p-8 pt-20 md:pt-6">
       <div className="max-w-7xl mx-auto">
         {/* En-tête */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Mes quittances</h1>
+        <div className="sticky top-0 z-30 bg-gray-50 pb-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Mes quittances</h1>
         </div>
 
         {/* Statistiques */}
@@ -275,7 +302,7 @@ const ReceiptManager: React.FC = () => {
             </div>
           </div>
 
-          {(dateDebut || dateFin || filterStatus !== 'Tous') && (
+          {(dateDebut || dateFin || sortOrder !== null) && (
             <button
               onClick={resetFilters}
               className="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
@@ -295,20 +322,17 @@ const ReceiptManager: React.FC = () => {
                     Numéro de Reçu
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleSortByDisponibilite}
+                      className="flex items-center gap-2 hover:bg-blue-700 px-2 py-1 rounded transition-colors"
+                    >
                       <span className="text-xs font-semibold uppercase tracking-wider">
                         Disponibilité
                       </span>
-                      <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value as any)}
-                        className="px-2 py-1 text-xs border border-gray-300 rounded bg-white text-gray-700 hover:bg-gray-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-                      >
-                        <option value="Tous">Tous</option>
-                        <option value="Utilisé">Utilisé</option>
-                        <option value="Disponible">Disponible</option>
-                      </select>
-                    </div>
+                      {sortOrder === null && <ArrowUpDown className="w-4 h-4" />}
+                      {sortOrder === 'asc' && <ArrowUp className="w-4 h-4" />}
+                      {sortOrder === 'desc' && <ArrowDown className="w-4 h-4" />}
+                    </button>
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
                     Date Utilisation

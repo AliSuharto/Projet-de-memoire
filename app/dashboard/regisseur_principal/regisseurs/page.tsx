@@ -50,7 +50,7 @@ const RegisseurPercepteurPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${API_BASE_URL}/users/regisseurs-percepteurs`);
+      const response = await fetch(`${API_BASE_URL}/users/percepteur`);
       
       if (!response.ok) {
         throw new Error(`Erreur HTTP: ${response.status}`);
@@ -140,44 +140,38 @@ const RegisseurPercepteurPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6 lg:p-8 pt-20 md:pt-6">
       <div className="max-w-7xl mx-auto">
         {/* En-tête */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <Users className="w-10 h-10 text-blue-600" />
-            <h1 className="text-4xl font-bold text-slate-800">Régisseurs & Percepteurs</h1>
+            <Users className="w-5 h-5 text-blue-600" />
+            <h1 className="text-2xl font-bold text-slate-800">Régisseurs & Percepteurs</h1>
           </div>
           <p className="text-slate-600 ml-13">Gestion des responsables des marchés, halls et zones</p>
         </div>
 
         {/* Barre de recherche et filtres */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Rechercher par nom, prénom ou email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              />
-            </div>
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-              <select
-                value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value as 'ALL' | 'REGISSEUR' | 'PERCEPTEUR')}
-                className="pl-11 pr-8 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white cursor-pointer min-w-[200px]"
-              >
-                <option value="ALL">Tous les rôles</option>
-                <option value="REGISSEUR">Régisseurs</option>
-                <option value="PERCEPTEUR">Percepteurs</option>
-              </select>
-            </div>
-          </div>
-        </div>
+       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+  <div className="flex flex-col md:flex-row gap-4">
+
+    {/* Conteneur largeur limitée */}
+    <div className="flex-1 md:flex-none md:max-w-md relative">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+
+      <input
+        type="text"
+        placeholder="Rechercher par nom, prénom ou email..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full pl-11 pr-4 py-3 border border-slate-300 rounded-lg
+                   focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+      />
+    </div>
+
+  </div>
+</div>
+
 
         {/* Liste des utilisateurs */}
         <div className="grid gap-6">

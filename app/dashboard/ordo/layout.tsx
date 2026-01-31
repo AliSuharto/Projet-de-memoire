@@ -22,7 +22,7 @@ export default function OrdoLayout({ children }: { children: ReactNode }) {
             email: user?.email || 'ordonnateur@commune.mg'
           }}
         />
-   <div className='pl-0 md:pl-48 pt-0 min-h-screen'>
+   <div className='pl-0 md:pl-64 pt-15 min-h-screen'>
     <div className="p-6">
   {children}
     </div>

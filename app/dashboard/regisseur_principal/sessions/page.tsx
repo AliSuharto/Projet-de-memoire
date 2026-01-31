@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Search, X, Calendar, User, DollarSign, FileText, Receipt, Store, MapPin, CheckCircle, XCircle, Clock, Filter, ArrowLeft, Eye } from 'lucide-react';
+import { Search, X, Calendar, User, DollarSign, FileText, Receipt, Store, MapPin, CheckCircle, XCircle, Clock, Filter, ArrowLeft, Eye, ArrowUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import API_BASE_URL from '@/services/APIbaseUrl';
 
 // Types
@@ -53,6 +53,27 @@ const SessionListPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState<boolean>(false);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage] = useState<number>(9);
+  
+  // Scroll to top button state
+  const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
+
+  // Scroll to top detection
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     const fetchSessions = async () => {
@@ -70,9 +91,15 @@ const SessionListPage: React.FC = () => {
         if (!response.ok) throw new Error('Failed to fetch sessions');
 
         const data: SessionDTO[] = await response.json();
-        console.log('Fetched sessions:', data);
-        setSessions(data);
-        setFilteredSessions(data);
+        
+        // Trier par date décroissante (plus récent en premier)
+        const sortedData = data.sort((a, b) => 
+          new Date(b.dateSession).getTime() - new Date(a.dateSession).getTime()
+        );
+        
+        console.log('Fetched sessions:', sortedData);
+        setSessions(sortedData);
+        setFilteredSessions(sortedData);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Une erreur est survenue');
@@ -98,7 +125,19 @@ const SessionListPage: React.FC = () => {
     }
 
     setFilteredSessions(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [searchTerm, selectedStatus, sessions]);
+
+  // Pagination calculations
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentSessions = filteredSessions.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredSessions.length / itemsPerPage);
+
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+    scrollToTop();
+  };
 
   const getStatusConfig = (status: SessionDTO['status']) => {
     const configs = {
@@ -133,7 +172,6 @@ const SessionListPage: React.FC = () => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: 'MGA',
-    //   minimumFractionDigits: 2
     }).format(amount).replace('MGA', 'Ar');
   };
 
@@ -149,13 +187,13 @@ const SessionListPage: React.FC = () => {
   const handleViewSession = (session: SessionDTO) => {
     setSelectedSession(session);
     setViewMode('detail');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToTop();
   };
 
   const handleBackToList = () => {
     setViewMode('list');
     setSelectedSession(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToTop();
   };
 
   const stats = calculateStats();
@@ -370,59 +408,70 @@ const SessionListPage: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Scroll to Top Button */}
+        {showScrollTop && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-110 z-50"
+            aria-label="Retour en haut"
+          >
+            <ArrowUp className="w-6 h-6" />
+          </button>
+        )}
       </div>
     );
   }
 
   // List View
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 md:p-6 lg:p-1 pt-12 md:pt-0">
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Toutes les Sessions</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Toutes les Sessions</h1>
           <p className="text-gray-600">Gérez et consultez toutes les sessions de collecte</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-sm text-gray-600 font-medium">Total Sessions</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.total}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{stats.total}</p>
               </div>
-              <FileText className="w-10 h-10 text-blue-500 opacity-80" />
+              <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-blue-500 opacity-80 flex-shrink-0" />
             </div>
           </div>
           
           <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-sm text-gray-600 font-medium">Validées</p>
-                <p className="text-3xl font-bold text-green-600 mt-1">{stats.validees}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-green-600 mt-1">{stats.validees}</p>
               </div>
-              <CheckCircle className="w-10 h-10 text-green-500 opacity-80" />
+              <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 text-green-500 opacity-80 flex-shrink-0" />
             </div>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 font-medium">En validation</p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">{stats.en_validation}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-gray-600 font-medium">En Validation</p>
+                <p className="text-2xl sm:text-3xl font-bold text-blue-600 mt-1">{stats.en_validation}</p>
               </div>
-              <Clock className="w-10 h-10 text-blue-500 opacity-80" />
+              <Clock className="w-8 h-8 sm:w-10 sm:h-10 text-blue-500 opacity-80 flex-shrink-0" />
             </div>
           </div>
 
           <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-sm p-5">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-sm text-blue-100 font-medium">Montant Total</p>
-                <p className="text-2xl font-bold text-white mt-1">{formatAmount(stats.montantTotal)}</p>
+                <p className="text-lg sm:text-xl font-bold text-white mt-1 break-words">{formatAmount(stats.montantTotal)}</p>
               </div>
-              <DollarSign className="w-10 h-10 text-white opacity-90" />
+              <DollarSign className="w-8 h-8 sm:w-10 sm:h-10 text-white opacity-90 flex-shrink-0" />
             </div>
           </div>
         </div>
@@ -471,14 +520,14 @@ const SessionListPage: React.FC = () => {
         </div>
 
         {/* Sessions Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSessions.length === 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {currentSessions.length === 0 ? (
             <div className="col-span-full bg-white rounded-xl shadow-sm p-12 text-center border border-gray-100">
               <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-lg">Aucune session trouvée</p>
             </div>
           ) : (
-            filteredSessions.map((session) => {
+            currentSessions.map((session) => {
               const statusConfig = getStatusConfig(session.status);
               const StatusIcon = statusConfig.icon;
               
@@ -542,7 +591,104 @@ const SessionListPage: React.FC = () => {
             })
           )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              {/* Page Info */}
+              <div className="text-sm text-gray-600">
+                Affichage de <span className="font-semibold text-gray-900">{indexOfFirstItem + 1}</span> à{' '}
+                <span className="font-semibold text-gray-900">
+                  {Math.min(indexOfLastItem, filteredSessions.length)}
+                </span>{' '}
+                sur <span className="font-semibold text-gray-900">{filteredSessions.length}</span> sessions
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="flex items-center gap-2">
+                {/* Previous Button */}
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`p-2 rounded-lg transition-all ${
+                    currentPage === 1
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
+                  }`}
+                  aria-label="Page précédente"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                {/* Page Numbers */}
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => {
+                    // Show first page, last page, current page, and pages around current
+                    const showPage =
+                      pageNumber === 1 ||
+                      pageNumber === totalPages ||
+                      (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1);
+
+                    const showEllipsis =
+                      (pageNumber === currentPage - 2 && currentPage > 3) ||
+                      (pageNumber === currentPage + 2 && currentPage < totalPages - 2);
+
+                    if (showEllipsis) {
+                      return (
+                        <span key={pageNumber} className="px-2 text-gray-400">
+                          ...
+                        </span>
+                      );
+                    }
+
+                    if (!showPage) return null;
+
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => handlePageChange(pageNumber)}
+                        className={`min-w-[40px] h-10 rounded-lg font-medium transition-all ${
+                          currentPage === pageNumber
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`p-2 rounded-lg transition-all ${
+                    currentPage === totalPages
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
+                  }`}
+                  aria-label="Page suivante"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-110 z-50"
+          aria-label="Retour en haut"
+        >
+          <ArrowUp className="w-6 h-6" />
+        </button>
+      )}
     </div>
   );
 };

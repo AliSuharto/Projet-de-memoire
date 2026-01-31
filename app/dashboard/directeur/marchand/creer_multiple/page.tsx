@@ -169,13 +169,13 @@ export default function MarchandsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-6 lg:p-0 pt-20 md:pt-6">
       <div className="mx-auto max-w-7xl px-6 py-8">
         {/* Header avec titre et boutons de navigation */}
         <div className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
-              Gestion des Marchands
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
+              Ajouter des Marchands
             </h1>
             <p className="text-gray-600 mt-2">Ajoutez et gérez vos marchands facilement</p>
           </div>

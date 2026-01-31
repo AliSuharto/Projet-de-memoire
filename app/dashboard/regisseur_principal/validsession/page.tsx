@@ -135,7 +135,7 @@ export default function SessionValidationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-6 lg:p-4 pt-20 md:pt-6">
       <div className="max-w-7xl mx-auto">
         {/* En-tête */}
         <div className="mb-8">
@@ -144,7 +144,7 @@ export default function SessionValidationPage() {
               <CheckCircle className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+              <h1 className="text-2xl md:text-2xl font-bold text-gray-900">
                 Validation des Sessions
               </h1>
               <p className="text-gray-600 mt-1">

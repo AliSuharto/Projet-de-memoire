@@ -187,12 +187,16 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6 lg:p-8 pt-20 md:pt-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Tableau de bord - Regisseur</h1>
-          <p className="text-gray-600">Gestion des marchés, utilisateurs et permissions</p>
+        <div className="sticky top-0 z-30 bg-gray-50 pb-4">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Tableau de bord - Regisseur
+          </h1>
+          <p className="text-gray-600">
+            Gestion des marchés, utilisateurs et permissions
+          </p>
         </div>
 
         {/* KPI Cards */}

@@ -81,7 +81,7 @@ const MarketsManagement: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6 lg:p-1 pt-20 md:pt-6">
       {/* En-tête administratif */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-6">
@@ -91,7 +91,7 @@ const MarketsManagement: React.FC = () => {
                 Direction des Marchés Communaux
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                Commune Urbaine d'Antsirabe - Service de Gestion des Marchés
+                Commune Urbaine de Diego Suarez - Service de Gestion des Marchés
               </p>
             </div>
             <button

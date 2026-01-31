@@ -224,7 +224,7 @@ const PlaceModal: React.FC<{ place: Place | null; onClose: () => void }> = ({ pl
     <div
       className="fixed inset-0 bg-black bg-opacity-50 modal-overlay flex items-center justify-center z-50" onClick={onClose}>
       <div
-        className="bg-white rounded-lg p-6 modal-overlay max-w-md w-full mx-4"
+        className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -234,7 +234,7 @@ const PlaceModal: React.FC<{ place: Place | null; onClose: () => void }> = ({ pl
         </div>
 
         {/* Contenu */}
-        <div className="space-y-4 modal-overlay">
+        <div className="space-y-4">
           {/* Numéro de place */}
           <div className="flex items-center gap-3">
             <MapPin className="w-5 h-5 text-gray-400" />
@@ -347,9 +347,9 @@ export default function MarcheeDashboard() {
   
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6 lg:p-1 pt-20 md:pt-6">
       {/* En-tête administratif officiel */}
-      <div className="fixed top-19 left-48 right-0 bg-white border-b-2 border-gray-300 shadow-sm z-50">
+      <div className="left-48 right-0 bg-white border-b-2 border-gray-300 shadow-sm z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between gap-4">
           {/* Bouton retour */}

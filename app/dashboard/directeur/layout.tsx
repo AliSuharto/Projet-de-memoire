@@ -26,7 +26,7 @@ export default function DirecteurLayout({ children }: { children: React.ReactNod
         
         <SideNav
          items={sideNav}/>
-        <main className="pl-0 md:pl-56 pt-0 min-h-screen bg-gray-50">
+        <main className="pl-0 md:pl-64 pt-14 min-h-screen bg-gray-50">
           <div className="p-6">
             {children}
           </div>

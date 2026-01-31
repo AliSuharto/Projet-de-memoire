@@ -292,12 +292,12 @@ export default function PaiementMarchand() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6 lg:p-8 pt-20 md:pt-6">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* En-tête */}
         <div className="mb-10">
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Effectuer un Paiement</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Effectuer un Paiement</h1>
           <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <p className="text-lg text-gray-600">
               Session active :{' '}
@@ -331,7 +331,7 @@ export default function PaiementMarchand() {
 
         {/* Carte recherche */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200/80 p-7 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Rechercher un marchand</h2>
+          <h2 className="text-sm text-gray-900 mb-2">Rechercher un marchand pour effectuer un paiement</h2>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -340,7 +340,7 @@ export default function PaiementMarchand() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="Nom complet ou numéro CIN..."
+                placeholder="Numéro CIN..."
                 className="w-full pl-12 pr-5 py-3.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm"
               />
             </div>
