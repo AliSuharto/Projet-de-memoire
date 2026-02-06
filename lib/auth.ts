@@ -209,4 +209,5 @@ export const setCurrentUser = (user: AuthUser | null): void => {
 // Fonction de déconnexion
 export const logout = (): void => {
   setCurrentUser(null);
+  setCurrentUser(null);
 };

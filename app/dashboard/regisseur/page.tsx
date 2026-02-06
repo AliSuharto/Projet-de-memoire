@@ -77,8 +77,18 @@ const Dashboard: React.FC = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Remplacez par votre URL d'API
-      const response = await fetch(`${API_BASE_URL}/sessions/dashboard/3`);
+      // Récupérer currentUser depuis localStorage
+    const currentUserString = localStorage.getItem('currentUser');
+    
+    if (!currentUserString) {
+      throw new Error('Utilisateur non connecté');
+    }
+
+    const currentUser = JSON.parse(currentUserString);
+    const userId = currentUser.id;
+
+    // Utiliser l'ID récupéré dans l'URL
+    const response = await fetch(`${API_BASE_URL}/sessions/dashboard/${userId}`);
       if (!response.ok) throw new Error('Erreur lors du chargement des données');
       const result = await response.json();
       setData(result);
@@ -127,12 +137,32 @@ const Dashboard: React.FC = () => {
     dateFormat = (date) => date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
   }
 
-  const sessionsChartData = sortedSessions.map(session => ({
-    name: dateFormat(new Date(session.dateOuverture)),
-    montant: parseFloat(session.montant),
-    fullDate: new Date(session.dateOuverture)
-  }));
+  const sessionsChartData = sortedSessions.reduce((acc, session) => {
+  const formattedDate = dateFormat(new Date(session.dateOuverture));
+  const existingEntry = acc.find(item => item.name === formattedDate);
+  
+  // Convertir le montant en nombre (au cas où ce serait une chaîne)
+  const montantNum = typeof session.montant === 'string' 
+    ? parseFloat(session.montant) 
+    : session.montant;
+  
+  if (existingEntry) {
+    // Si la date existe déjà, additionner les montants
+    existingEntry.montant += montantNum;
+  } else {
+    // Sinon créer une nouvelle entrée
+    acc.push({
+      name: formattedDate,
+      montant: montantNum,
+      fullDate: new Date(session.dateOuverture)
+    });
+  }
+  
+  return acc;
+}, [] as Array<{ name: string; montant: number; fullDate: Date }>);
 
+// Ajouter ce console.log pour vérifier les données
+console.log('Sessions Chart Data:', sessionsChartData);
   const marchandsStatusData = [
     { name: 'À jour', value: data.nbrMarchandsAjour, color: COLORS.success },
     { name: 'Retard Léger', value: data.nbrMarchandsRetardLeger, color: COLORS.warning },
@@ -187,7 +217,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6 lg:p-8 pt-20 md:pt-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-0 md:p-0 lg:p-0 pt-20 md:pt-0">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="sticky top-0 z-30 bg-gray-50 pb-4">

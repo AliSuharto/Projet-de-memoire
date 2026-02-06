@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ChevronDown, ChevronUp, LogOut } from 'lucide-react';
+import { ChevronDown, ChevronUp, LogOut, X } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 
 // ────────────────────────────────────────────────
@@ -22,6 +22,57 @@ interface SideNavProps {
 }
 
 // ────────────────────────────────────────────────
+// Modal de confirmation
+function LogoutConfirmModal({ 
+  isOpen, 
+  onClose, 
+  onConfirm 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onConfirm: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+        <div className="flex items-start justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Confirmer la déconnexion
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <p className="text-gray-600 mb-6">
+          Êtes-vous sûr de vouloir vous déconnecter ? Vous devrez vous reconnecter pour accéder à votre compte.
+        </p>
+
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+          >
+            Se déconnecter
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────
 export default function SideNav({
   items,
   topSection,
@@ -33,6 +84,7 @@ export default function SideNav({
 
   const [openItems, setOpenItems] = useState<string[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Charger utilisateur depuis localStorage
   useEffect(() => {
@@ -59,9 +111,18 @@ export default function SideNav({
       (sub) => isActive(sub.href) || hasActiveChild(sub.subItems)
     );
 
-  const handleLogout = () => {
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const handleLogoutConfirm = () => {
+    setShowLogoutModal(false);
     logout();
     router.replace('/login');
+  };
+
+  const handleLogoutCancel = () => {
+    setShowLogoutModal(false);
   };
 
   // ────────────────────────────────────────────────
@@ -118,48 +179,43 @@ export default function SideNav({
 
   // ────────────────────────────────────────────────
   return (
-    <nav className="hidden md:flex fixed left-0 top-0 h-screen w-64 flex-col bg-white shadow-lg z-40">
+    <>
+      <nav className="hidden md:flex fixed left-0 top-0 h-screen w-64 flex-col bg-white shadow-lg z-40">
 
-      {/* ─────────────── TOP SECTION (fixée) ─────────────── */}
-      {topSection && (
-        <div className="border-b border-gray-200 px-4 py-4 ">
-          {topSection}
-        </div>
-      )}
-
-      {/* ─────────────── MENU (scrollable) ─────────────── */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 mt-20">
-        {renderNavItems(items)}
-      </div>
-
-      {/* ─────────────── BOTTOM SECTION (fixée) ─────────────── */}
-      <div className="border-t border-gray-200 bg-gray-50/80 px-3 py-4">
-        {bottomSection ?? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center text-white font-semibold text-sm">
-                {currentUser?.nom?.charAt(0)?.toUpperCase() || 'U'}
-              </div>
-              <div className="min-w-0">
-                <div className="text-sm font-medium truncate">
-                  {currentUser?.nom || 'Utilisateur'}
-                </div>
-                <div className="text-xs text-gray-500 truncate">
-                  {currentUser?.role || 'Rôle'}
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 p-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
-            >
-              <LogOut size={16} />
-              Déconnexion
-            </button>
+        {/* ─────────────── TOP SECTION (fixée) ─────────────── */}
+        {topSection && (
+          <div className="border-b border-gray-200 px-4 py-2.5 ">
+            {topSection}
           </div>
         )}
-      </div>
-    </nav>
+
+        {/* ─────────────── MENU (scrollable) ─────────────── */}
+        <div className="flex-1 overflow-y-auto px-3 py-4 mt-0">
+          {renderNavItems(items)}
+        </div>
+
+        {/* ─────────────── BOTTOM SECTION (fixée) ─────────────── */}
+        <div className="border-t border-gray-200 bg-gray-50/80 px-3 py-4">
+          {bottomSection ?? (
+            <div className="space-y-3">
+              <button
+                onClick={handleLogoutClick}
+                className="w-full flex items-center justify-center gap-2 p-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+              >
+                <LogOut size={16} />
+                Déconnexion
+              </button>
+            </div>
+          )}
+        </div>
+      </nav>
+
+      {/* Modal de confirmation */}
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onClose={handleLogoutCancel}
+        onConfirm={handleLogoutConfirm}
+      />
+    </>
   );
 }

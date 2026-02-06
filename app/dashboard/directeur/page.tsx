@@ -129,7 +129,7 @@ const COLORSS = {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Tableau de Bord Ordo</h1>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Tableau de Bord du Directeur</h1>
           <p className="text-gray-600">Visualisation des données des marchés et marchands</p>
         </div>
 

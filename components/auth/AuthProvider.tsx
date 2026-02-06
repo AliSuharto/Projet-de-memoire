@@ -11,8 +11,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
 }
 
-
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
@@ -31,7 +29,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   
-
   useEffect(() => {
     // Récupérer l'utilisateur depuis le localStorage au chargement
     const currentUser = getCurrentUser();
@@ -47,6 +44,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     setUser(null);
     authLogout();
+    
+    // Supprimer tous les éléments d'authentification du localStorage
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // Alternative : Vider complètement le localStorage (à utiliser avec précaution)
+    // localStorage.clear();
   };
 
   const value: AuthContextType = {

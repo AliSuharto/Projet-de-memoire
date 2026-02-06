@@ -220,7 +220,7 @@ export default function MarchandsTable() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6 lg:p-8 pt-20 md:pt-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6 lg:p-0 pt-20 md:pt-6">
       <div className="max-w-8xl mx-auto px-4 md:px-6 lg:px-8 py-8">
 
         {loading && (

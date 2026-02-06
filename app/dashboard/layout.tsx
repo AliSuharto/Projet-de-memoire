@@ -24,7 +24,7 @@ return (
         {/* Sidebar (optionnel) */}
 
         {/* Contenu principal */}      
-        <main className="flex-1 -mt-5 min-h-screen">
+        <main className="flex-1 -mt-2 min-h-screen">
           {children}
         </main>
       </div>

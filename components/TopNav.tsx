@@ -61,6 +61,57 @@ type SearchablePage = {
   description?: string;
 };
 
+// ────────────────────────────────────────────────
+// Modal de confirmation de déconnexion
+function LogoutConfirmModal({ 
+  isOpen, 
+  onClose, 
+  onConfirm 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onConfirm: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+        <div className="flex items-start justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Confirmer la déconnexion
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <p className="text-gray-600 mb-6">
+          Êtes-vous sûr de vouloir vous déconnecter ? Vous devrez vous reconnecter pour accéder à votre compte.
+        </p>
+
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+          >
+            Se déconnecter
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Topnav({
   navigationItems = [],
   logo = {
@@ -81,6 +132,7 @@ export default function Topnav({
   const [filteredPages, setFilteredPages] = useState<SearchablePage[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { logout } = useAuth();
   
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -118,9 +170,19 @@ export default function Topnav({
     });
   }, [navigationItems]);
 
-  const handleLogout = () => {
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+    setIsUserMenuOpen(false);
+  };
+
+  const handleLogoutConfirm = () => {
+    setShowLogoutModal(false);
     logout();
     window.location.href = '/login';
+  };
+
+  const handleLogoutCancel = () => {
+    setShowLogoutModal(false);
   };
 
   // Charger l'utilisateur depuis localStorage
@@ -300,7 +362,7 @@ export default function Topnav({
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm md:left-64">
+      <header className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm md:left-64">
         <div className="w-full flex items-center justify-between px-4 py-3">
           {/* Logo + Bouton Hamburger */}
           <div className="flex items-center space-x-3">
@@ -312,7 +374,7 @@ export default function Topnav({
               {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
             
-            <Link href="/" className="flex items-center space-x-2 group hover:bg-gray-50 rounded-lg p-2 transition-colors">
+            <Link href="/" className="md:hidden flex items-center space-x-2 group hover:bg-gray-50 rounded-lg p-2 transition-colors">
               <div className="relative">
                 <Image
                   src={logo.src}
@@ -476,28 +538,7 @@ export default function Topnav({
                 {isUserMenuOpen && (
                   <div className="absolute right-0 z-50 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 animate-in slide-in-from-top-2 duration-200">
                     {/* En-tête du menu */}
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center shadow-sm">
-                          <span className="text-white text-base font-semibold">
-                            {activeUser?.nom?.charAt(0)?.toUpperCase() || 'U'}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {activeUser?.nom || 'Utilisateur'}
-                          </p>
-                          <p className="text-xs text-gray-500 truncate">
-                            {activeUser?.email || ''}
-                          </p>
-                        </div>
-                      </div>
-                      {activeUser?.role && (
-                        <div className="mt-2 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
-                          {activeUser.role}
-                        </div>
-                      )}
-                    </div>
+                   
                     
                     <div className="py-1">
                       <Link
@@ -526,7 +567,7 @@ export default function Topnav({
                     <hr className="my-1 border-gray-100" />
                     
                     <button
-                      onClick={handleLogout}
+                      onClick={handleLogoutClick}
                       className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
                       <LogOut className="w-4 h-4 mr-3" />
@@ -631,6 +672,13 @@ export default function Topnav({
         logo={logo}
         user={user}
         isAuthenticated={isAuthenticated}
+      />
+
+      {/* Modal de confirmation de déconnexion */}
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onClose={handleLogoutCancel}
+        onConfirm={handleLogoutConfirm}
       />
     </>
   );
