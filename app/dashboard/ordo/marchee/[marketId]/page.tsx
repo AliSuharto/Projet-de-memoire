@@ -2,8 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronDown, ChevronUp, Building2, Home, MapPin, Users, TrendingUp, Search, Filter, ArrowLeft, FileText, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronUp, Building2, Home, MapPin, Users, TrendingUp, Search, Filter, ArrowLeft, FileText, Calendar, Download } from 'lucide-react';
 import API_BASE_URL from '@/services/APIbaseUrl';
+import { generateMarcheeExcelReport } from '@/components/(Ordonnateur)/MarcheeExcelExport';
+
 
 // Types
 interface Place {
@@ -306,6 +308,7 @@ export default function MarcheeDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     if (!marketId) return;
@@ -319,6 +322,20 @@ export default function MarcheeDashboard() {
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, [marketId]);
+
+  const handleExportExcel = () => {
+    if (!marchee) return;
+    
+    setIsExporting(true);
+    try {
+      generateMarcheeExcelReport(marchee);
+    } catch (error) {
+      console.error('Erreur lors de l\'export Excel:', error);
+      alert('Une erreur est survenue lors de l\'export Excel');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -344,37 +361,55 @@ export default function MarcheeDashboard() {
 
   if (!marchee) return null;
 
-  
-
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6 lg:p-1 pt-20 md:pt-6">
       {/* En-tête administratif officiel */}
       <div className="left-48 right-0 bg-white border-b-2 border-gray-300 shadow-sm z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex items-center justify-between gap-4">
-          {/* Bouton retour */}
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all whitespace-nowrap flex-shrink-0"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Retour à la liste</span>
-            <span className="sm:hidden">Retour</span>
-          </button>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between gap-4">
+            {/* Bouton retour */}
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all whitespace-nowrap flex-shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Retour à la liste</span>
+              <span className="sm:hidden">Retour</span>
+            </button>
 
-          {/* Informations du marché */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">
-              {marchee.nom}
-            </h1>
-            <div className="flex items-center gap-2 mt-1 text-sm sm:text-base text-gray-600">
-              <MapPin className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">{marchee.adresse}</span>
+            {/* Informations du marché */}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">
+                {marchee.nom}
+              </h1>
+              <div className="flex items-center gap-2 mt-1 text-sm sm:text-base text-gray-600">
+                <MapPin className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">{marchee.adresse}</span>
+              </div>
             </div>
+
+            {/* Bouton Export Excel */}
+            <button
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0"
+            >
+              {isExporting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span className="hidden sm:inline">Export...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Exporter en Excel</span>
+                  <span className="sm:hidden">Excel</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
-    </div>
 
       {/* Stats */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-20">

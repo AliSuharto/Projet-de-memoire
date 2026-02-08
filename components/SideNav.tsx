@@ -180,7 +180,7 @@ export default function SideNav({
   // ────────────────────────────────────────────────
   return (
     <>
-      <nav className="hidden md:flex fixed left-0 top-0 h-screen w-64 flex-col bg-white shadow-lg z-40">
+      <nav className="hidden md:flex fixed left-0 top-0 h-screen w-64 flex-col bg-white shadow-sm z-40">
 
         {/* ─────────────── TOP SECTION (fixée) ─────────────── */}
         {topSection && (

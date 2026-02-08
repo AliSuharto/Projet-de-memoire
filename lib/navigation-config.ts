@@ -386,23 +386,9 @@ REGISSEUR_PRINCIPAL: [
       label: "Etats de versement"
     },
     {
-      href: "/dashboard/directeur/marches",
+      href: "/dashboard/regisseur_principal/marches",
       icon: ShoppingCart,
-      label: "Gestion des marchés",
-      subItems: [
-        { 
-          href: "/dashboard/directeur/marches/creer", 
-          label: "Créer un marché",
-          icon: Plus,
-          description: "Ajouter un nouveau marché"
-        },
-        { 
-          href: "/dashboard/directeur/marches/liste", 
-          label: "Liste des marchés",
-          icon: BookOpen,
-          description: "Gérer les marchés existants"
-        }
-      ]
+      label: "Liste des marchés"     
     },
 ]as UnifiedNavItem[],
 

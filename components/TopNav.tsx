@@ -14,7 +14,9 @@ import {
   X, 
   ChevronDown,
   Notebook,
-  HelpCircle
+  HelpCircle,
+  Settings,
+  Shield
 } from 'lucide-react';
 import BurgerMenu from './BurgerMenu';
 
@@ -183,6 +185,11 @@ export default function Topnav({
 
   const handleLogoutCancel = () => {
     setShowLogoutModal(false);
+  };
+
+  // Fonction pour fermer le menu utilisateur
+  const closeUserMenu = () => {
+    setIsUserMenuOpen(false);
   };
 
   // Charger l'utilisateur depuis localStorage
@@ -510,7 +517,7 @@ export default function Topnav({
                 >
                   {/* Avatar rond simple */}
                   <div className="relative">
-                    <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center shadow-sm">
+                    <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center shadow-sm">
                       <span className="text-white text-sm font-semibold">
                         {activeUser?.nom?.charAt(0)?.toUpperCase() || 'U'}
                       </span>
@@ -534,44 +541,95 @@ export default function Topnav({
                   }`} />
                 </button>
 
-                {/* Menu utilisateur */}
+                {/* Menu utilisateur amélioré */}
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 z-50 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 animate-in slide-in-from-top-2 duration-200">
-                    {/* En-tête du menu */}
-                   
+                  <div className="absolute right-0 z-50 mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-200 py-2 animate-in slide-in-from-top-2 duration-200 overflow-hidden">
+                    {/* En-tête du menu avec informations utilisateur */}
+                    <div className="px-4 py-3 bg-gradient-to-br from-blue-50 to-indigo-50 border-b border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-md">
+                          <span className="text-white text-lg font-bold">
+                            {activeUser?.nom?.charAt(0)?.toUpperCase() || 'U'}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {activeUser?.nom || 'Utilisateur'}
+                          </p>
+                          <p className="text-xs text-gray-600 truncate">
+                            {activeUser?.email || 'email@example.com'}
+                          </p>
+                          {activeUser?.role && (
+                            <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 bg-white/80 rounded-full">
+                              <Shield className="w-3 h-3 text-blue-600" />
+                              <span className="text-xs font-medium text-blue-700">
+                                {activeUser.role}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                     
-                    <div className="py-1">
+                    {/* Items du menu */}
+                    <div className="py-2">
                       <Link
                         href={getProfilePath()}
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        onClick={closeUserMenu}
+                        className="group flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
                       >
-                        <User className="w-4 h-4 mr-3 text-gray-400" />
-                        Mon Profil
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
+                          <User className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">Mon Profil</div>
+                          <div className="text-xs text-gray-500">Gérer vos informations</div>
+                        </div>
                       </Link>
+                      
                       <Link
                         href={getNotePath()}
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        onClick={closeUserMenu}
+                        className="group flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-amber-50 transition-colors"
                       >
-                        <Notebook className="w-4 h-4 mr-3 text-gray-400" />
-                        Note
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 group-hover:bg-amber-200 flex items-center justify-center transition-colors">
+                          <Notebook className="w-4 h-4 text-amber-600" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">Notes</div>
+                          <div className="text-xs text-gray-500">Vos notes et mémos</div>
+                        </div>
                       </Link>
+                      
                       <Link
                         href={getAidePath()}
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        onClick={closeUserMenu}
+                        className="group flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-green-50 transition-colors"
                       >
-                        <HelpCircle className="w-4 h-4 mr-3 text-gray-400" />
-                        Aide
+                        <div className="w-8 h-8 rounded-lg bg-green-100 group-hover:bg-green-200 flex items-center justify-center transition-colors">
+                          <HelpCircle className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">Aide & Support</div>
+                          <div className="text-xs text-gray-500">Documentation et assistance</div>
+                        </div>
                       </Link>
                     </div>
                     
-                    <hr className="my-1 border-gray-100" />
+                    <div className="border-t border-gray-200 my-2"></div>
                     
+                    {/* Bouton de déconnexion */}
                     <button
                       onClick={handleLogoutClick}
-                      className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      className="w-full group flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
-                      <LogOut className="w-4 h-4 mr-3" />
-                      <span>Déconnexion</span>
+                      <div className="w-8 h-8 rounded-lg bg-red-100 group-hover:bg-red-200 flex items-center justify-center transition-colors">
+                        <LogOut className="w-4 h-4 text-red-600" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <div className="font-medium">Se déconnecter</div>
+                        <div className="text-xs text-red-500">Fermer votre session</div>
+                      </div>
                     </button>
                   </div>
                 )}

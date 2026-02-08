@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, DollarSign, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import API_BASE_URL from '@/services/APIbaseUrl';
+import ExportRecettesExcel from '@/components/(Ordonnateur)/ExportRecetteExcel';
+
 
 interface PaiementDTO {
   id: number;
@@ -147,7 +149,7 @@ const DashboardRecettes = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Chargement des données...</p>
@@ -157,12 +159,21 @@ const DashboardRecettes = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 md:p-0 lg:p-6 pt-20 md:pt-0">
       <div className="max-w-7xl mx-auto">
         {/* En-tête */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Tableau de Bord des Recettes</h1>
-          <p className="text-gray-600">Suivi et analyse des recettes par période</p>
+        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Visualisation Recette</h1>
+            <p className="text-gray-600">Suivi et analyse des recettes par période</p>
+          </div>
+          <div className="mt-4 md:mt-0">
+            <ExportRecettesExcel 
+              sessions={filteredSessions} 
+              dateDebut={dateDebut} 
+              dateFin={dateFin} 
+            />
+          </div>
         </div>
 
         {/* Filtres de date */}

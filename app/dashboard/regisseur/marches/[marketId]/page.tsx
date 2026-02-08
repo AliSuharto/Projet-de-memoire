@@ -82,7 +82,7 @@ interface StatCardProps {
 }
 
 const StatCard = ({ title, value, icon, color }: StatCardProps) => (
-  <div className="bg-white rounded-xl shadow border p-5 transition-transform hover:scale-[1.02]">
+  <div className="bg-white rounded-xl shadow p-5 transition-transform hover:scale-[1.02]">
     <div className="flex items-center justify-between">
       <div>
         <p className="text-sm text-gray-600 font-medium">{title}</p>
@@ -209,7 +209,7 @@ const CollapsibleHall = ({ hall, defaultOpen = false, onPlaceClick }: Collapsibl
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+    <div className=" border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
       <button
         onClick={() => setOpen(!open)}
         className="w-full px-5 py-3.5 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors text-left"
@@ -326,7 +326,7 @@ export default function MarcheeDashboard() {
     <div className="min-h-screen bg-gray-50 pb-16">
 
       {/* Header fixe */}
-      <header className="sticky top-0 bg-white border-b shadow-sm z-20">
+      <header className="sticky top-0 bg-white rounded-b-lg shadow-sm z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-4">
             <button 
@@ -366,7 +366,7 @@ export default function MarcheeDashboard() {
           const isOpen = openZones.has(zone.id);
 
           return (
-            <div key={zone.id} className="bg-white rounded-xl border shadow-sm overflow-hidden">
+            <div key={zone.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
               <button
                 onClick={() => {
                   setOpenZones(prev => {
@@ -428,7 +428,7 @@ export default function MarcheeDashboard() {
 
         {/* Halls indépendants */}
         {marchee.hall.length > 0 && (
-          <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl  shadow-sm overflow-hidden">
             <button
               onClick={() => setOpenHallsIndependent(!openHallsIndependent)}
               className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
@@ -464,7 +464,7 @@ export default function MarcheeDashboard() {
 
         {/* Places extérieures / directes du marché */}
         {marchee.place.length > 0 && (
-          <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <button
               onClick={() => setOpenPlacesDirect(!openPlacesDirect)}
               className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"

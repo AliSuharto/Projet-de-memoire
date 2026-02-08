@@ -149,9 +149,9 @@ const NotesPage: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6 lg:p-8 pt-20 md:pt-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-0 pt-20 md:pt-0 mt-0">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-gray-200 px-4 py-4 md:px-8 shadow-sm">
+      <header className="sticky top-0 z-10 bg-white/90 backdrop-blur-md rounded-b-lg border-b border-gray-200 px-4 py-4 md:px-8 shadow-sm">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-800">
             Mes Notes
