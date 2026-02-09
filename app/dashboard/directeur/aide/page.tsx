@@ -30,7 +30,7 @@ const HelpPage: React.FC = () => {
               Pour garantir la sécurité de votre compte, <strong>le changement de votre mot de passe initial est obligatoire</strong> avant de commencer à utiliser le logiciel.
             </p>
             <ul className="list-disc ml-6 space-y-2 text-gray-700">
-              <li>Dans le <strong>menu en haut de l'écran</strong>, cliquez sur votre nom d'utilisateur.</li>
+              <li>Dans le <strong>menu en haut de l&apos;écran</strong>, cliquez sur votre nom d&apos;utilisateur.</li>
               <li>Un menu déroulant apparaît : sélectionnez <strong>Profil</strong>.</li>
               <li>Cliquez sur le bouton <strong>Changer mot de passe</strong>.</li>
               <li>Saisissez votre ancien mot de passe, puis votre nouveau mot de passe (minimum 8 caractères recommandés).</li>
@@ -49,7 +49,7 @@ const HelpPage: React.FC = () => {
             <Map className="text-blue-600" /> Organisation des Marchés
           </h2>
           <p className="text-gray-700 mb-6">
-            Définissez l'espace physique de vos marchés en créant une structure organisée en zones, halls et places.
+            Définissez l&apos;espace physique de vos marchés en créant une structure organisée en zones, halls et places.
           </p>
           <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 mb-6">
              <h4 className="font-bold mb-3 flex items-center"><PlusCircle className="mr-2 size-5" /> Comment créer un marché :</h4>
@@ -98,7 +98,7 @@ const HelpPage: React.FC = () => {
                 <li>Cliquez sur <strong>Ajouter</strong>.</li>
                 <li>Remplissez les informations (nom, prénom, email, rôle).</li>
                 <li>Définissez un mot de passe temporaire.</li>
-                <li>Enregistrez l'utilisateur.</li>
+                <li>Enregistrez l&apos;utilisateur.</li>
               </ol>
             </div>
             <div className="p-4 bg-red-50 text-red-800 rounded-lg text-sm border border-red-100">
@@ -151,7 +151,7 @@ const HelpPage: React.FC = () => {
           </div>
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
             <p className="text-sm text-gray-700">
-              <strong>Astuce :</strong> Vous pouvez modifier les informations d'un marchand à tout moment en cliquant sur son nom dans la liste.
+              <strong>Astuce :</strong> Vous pouvez modifier les informations d&apos;un marchand à tout moment en cliquant sur son nom dans la liste.
             </p>
           </div>
         </div>
@@ -175,9 +175,9 @@ const HelpPage: React.FC = () => {
               <li>Saisissez le <strong>numéro de début</strong> (ex: 1000).</li>
               <li>Saisissez le <strong>numéro de fin</strong> (ex: 1100).</li>
               <li>Ajoutez un <strong>préfixe</strong> pour identifier la série (ex: A, B, C...).</li>
-              <li><span className="text-blue-700 font-bold">Vérifiez attentivement l'aperçu</span> avant d'enregistrer.</li>
+              <li><span className="text-blue-700 font-bold">Vérifiez attentivement l&apos;aperçu</span> avant d&apos;enregistrer.</li>
               <li>Sélectionnez le régisseur ou percepteur concerné.</li>
-              <li>Enregistrez l'attribution.</li>
+              <li>Enregistrez l&apos;attribution.</li>
             </ol>
           </div>
           <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 text-amber-800">
@@ -220,7 +220,7 @@ const HelpPage: React.FC = () => {
             
             <div className="bg-white border p-6 rounded-xl shadow-sm">
               <h4 className="font-bold mb-3 flex items-center gap-2">
-                <ArrowRightLeft className="size-5 text-blue-600" /> Attribution d'une place à un marchand
+                <ArrowRightLeft className="size-5 text-blue-600" /> Attribution d&apos;une place à un marchand
               </h4>
               <p className="text-gray-700 mb-4">
                 Associez un marchand à son emplacement dans le marché.
@@ -232,8 +232,8 @@ const HelpPage: React.FC = () => {
                 <li>Sélectionnez la <strong>place</strong> à attribuer</li>
                 <li>Choisissez le <strong>marchand</strong></li>
                 <li>Définissez la <strong>catégorie tarifaire</strong></li>
-                <li>Indiquez la date de début d'occupation</li>
-                <li>Enregistrez l'attribution</li>
+                <li>Indiquez la date de début d&apos;occupation</li>
+                <li>Enregistrez l&apos;attribution</li>
               </ol>
             </div>
           </div>
@@ -280,7 +280,7 @@ const HelpPage: React.FC = () => {
                 <LayoutDashboard className="size-5 text-blue-600" /> Tableau de bord
               </h4>
               <p className="text-sm text-gray-700">
-                Accédez à une vue d'ensemble de l'activité : encaissements du jour, marchands actifs, places occupées, etc.
+                Accédez à une vue d&apos;ensemble de l&apos;activité : encaissements du jour, marchands actifs, places occupées, etc.
               </p>
             </div>
             <div className="border p-5 rounded-lg bg-white">
@@ -301,7 +301,7 @@ const HelpPage: React.FC = () => {
       content: (
         <div>
           <h2 className="text-3xl font-light mb-6 flex items-center gap-2">
-            <Search className="text-blue-600" /> Recherche d'Informations
+            <Search className="text-blue-600" /> Recherche d&apos;Informations
           </h2>
           <div className="bg-white border p-6 rounded-xl shadow-sm">
             <p className="text-gray-700 mb-4">
@@ -310,9 +310,9 @@ const HelpPage: React.FC = () => {
             <ul className="space-y-2 text-gray-700 ml-6">
               <li>• Un marchand spécifique (par nom, numéro, ou place)</li>
               <li>• Une place dans un marché</li>
-              <li>• Les transactions d'un régisseur</li>
-              <li>• Les paiements d'un marchand</li>
-              <li>• L'historique d'une quittance</li>
+              <li>• Les transactions d&apos;un régisseur</li>
+              <li>• Les paiements d&apos;un marchand</li>
+              <li>• L&apos;historique d&apos;une quittance</li>
             </ul>
           </div>
         </div>
@@ -332,7 +332,7 @@ const HelpPage: React.FC = () => {
           <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200 shadow-inner">
             <h4 className="font-bold mb-3">Comment accéder à vos notes :</h4>
             <ol className="list-decimal ml-6 space-y-2 text-gray-800">
-              <li>Cliquez sur votre nom dans le <strong>menu en haut de l'écran</strong>.</li>
+              <li>Cliquez sur votre nom dans le <strong>menu en haut de l&apos;écran</strong>.</li>
               <li>Dans le menu déroulant, sélectionnez <strong>Note</strong>.</li>
               <li>Rédigez vos notes personnelles et mémos de gestion.</li>
               <li>Vos notes sont automatiquement enregistrées et restent privées.</li>
@@ -394,10 +394,10 @@ const HelpPage: React.FC = () => {
             ))}
 
             <div className="mt-16 p-6 bg-blue-900 text-white rounded-xl">
-              <h3 className="text-xl font-bold mb-3">Besoin d'aide supplémentaire ?</h3>
+              <h3 className="text-xl font-bold mb-3">Besoin d&apos;aide supplémentaire ?</h3>
               <p className="text-blue-100">
                 Si vous rencontrez des difficultés ou avez des questions non couvertes par ce guide, 
-                n'hésitez pas à contacter le support technique ou à consulter la documentation complète du logiciel.
+                n&apos;hésitez pas à contacter le support technique ou à consulter la documentation complète du logiciel.
               </p>
             </div>
           </div>

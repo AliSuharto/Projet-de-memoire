@@ -20,10 +20,16 @@ interface CreateMarketForm {
   description: string;
 }
 
+interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data?: T;
+}
+
 // =======================
 // Services API
 // =======================
-const token = localStorage.getItem('token') ;
+const token = localStorage.getItem('token');
 const marketService = {
   // Récupérer tous les marchés
   getAll: async (): Promise<Market[]> => {
@@ -31,7 +37,6 @@ const marketService = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        // Ajouter token d'auth si nécessaire
         'Authorization': `Bearer ${token}`
       },
     });
@@ -39,44 +44,47 @@ const marketService = {
     if (!response.ok) {
       throw new Error(`Erreur ${response.status}: ${response.statusText}`);
     }
-     const data = await response.json();
+    const data = await response.json();
 
-  console.log("✅ Données marchés reçues depuis l'API:", data);
+    console.log("✅ Données marchés reçues depuis l'API:", data);
 
-  return data;
+    return data as Market[];
   },
 
   // Créer un nouveau marché
   create: async (data: CreateMarketForm): Promise<Market> => {
-  const response = await fetch(`${API_BASE_URL}/marchees`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      nom: data.nom,
-      adresse: data.adresse,
-      nbrPlace: data.nbrPlace ? parseInt(data.nbrPlace) : null,
-      description: data.description || null,
-    }),
-  });
+    const response = await fetch(`${API_BASE_URL}/marchees`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        nom: data.nom,
+        adresse: data.adresse,
+        nbrPlace: data.nbrPlace ? parseInt(data.nbrPlace) : null,
+        description: data.description || null,
+      }),
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Erreur ${response.status}: ${errorText}`);
-  }
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Erreur ${response.status}: ${errorText}`);
+    }
 
-  const result = await response.json();
+    const result = await response.json() as ApiResponse<Market>;
 
-  // ✅ Extraire uniquement le marché créé
-  if (!result.success) {
-    throw new Error(result.message || "Erreur inconnue");
-  }
+    // ✅ Extraire uniquement le marché créé
+    if (!result.success) {
+      throw new Error(result.message || "Erreur inconnue");
+    }
 
-  return result.data as Market;
-},
+    if (!result.data) {
+      throw new Error("Aucune donnée retournée par l'API");
+    }
 
+    return result.data;
+  },
 
   // Modifier un marché
   update: async (id: number, data: Partial<Market>): Promise<Market> => {
@@ -84,7 +92,6 @@ const marketService = {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        // 'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(data),
     });
@@ -93,7 +100,7 @@ const marketService = {
       throw new Error(`Erreur ${response.status}: ${response.statusText}`);
     }
     
-    return await response.json();
+    return await response.json() as Market;
   },
 
   // Supprimer un marché
@@ -102,7 +109,6 @@ const marketService = {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        // 'Authorization': `Bearer ${token}`
       },
     });
     
@@ -117,7 +123,6 @@ const marketService = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        // 'Authorization': `Bearer ${token}`
       },
     });
     
@@ -125,7 +130,7 @@ const marketService = {
       throw new Error(`Erreur ${response.status}: ${response.statusText}`);
     }
     
-    return await response.json();
+    return await response.json() as Market;
   },
 };
 
@@ -251,9 +256,10 @@ const CreateMarketModal: React.FC<{
       await onSubmit(formData);
       setFormData({ nom: "", adresse: "", nbrPlace: "", description: "" });
       onClose();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Erreur lors de la création:", error);
-      setError(error.message || "Une erreur est survenue lors de la création");
+      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue lors de la création";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -389,9 +395,10 @@ const MarketsManagement: React.FC = () => {
       setError(null);
       const data = await marketService.getAll();
       setMarkets(data);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Erreur lors du chargement des marchés:", error);
-      setError(error.message || "Impossible de charger les marchés");
+      const errorMessage = error instanceof Error ? error.message : "Impossible de charger les marchés";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -404,7 +411,7 @@ const MarketsManagement: React.FC = () => {
       // const detailedMarket = await marketService.getById(market.id);
       console.log("Voir les détails du marché:", market);
       router.push(`/dashboard/directeur/marches/${market.id}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Erreur lors de la récupération des détails:", error);
       alert("Impossible d'accéder aux détails du marché");
     }
@@ -415,7 +422,7 @@ const MarketsManagement: React.FC = () => {
       console.log("Modifier le marché:", market);
       // Rediriger vers la page de modification
       router.push(`/dashboard/directeur/marches/${market.id}/edit`);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Erreur lors de l'ouverture de la modification:", error);
       alert("Impossible d'ouvrir la modification");
     }
@@ -427,9 +434,10 @@ const MarketsManagement: React.FC = () => {
         await marketService.delete(market.id);
         setMarkets(prev => prev.filter(m => m.id !== market.id));
         console.log("Marché supprimé:", market);
-      } catch (error: any) {
+      } catch (error) {
         console.error("Erreur lors de la suppression:", error);
-        alert(error.message || "Impossible de supprimer le marché");
+        const errorMessage = error instanceof Error ? error.message : "Impossible de supprimer le marché";
+        alert(errorMessage);
       }
     }
   };
@@ -439,7 +447,7 @@ const MarketsManagement: React.FC = () => {
       const newMarket = await marketService.create(formData);
       setMarkets(prev => [...prev, newMarket]);
       console.log("Marché créé:", newMarket);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Erreur lors de la création:", error);
       throw error; // Re-throw pour que le modal puisse afficher l'erreur
     }

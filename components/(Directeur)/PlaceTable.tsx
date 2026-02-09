@@ -12,7 +12,9 @@ interface Place {
 
 interface PlacesTableProps {
   places: Place[];
-  onPlacesChange: (places: Place[]) => void; // Pour mettre à jour la liste après modifications
+  onPlacesChange: (places: Place[]) => void;
+  oncreatePlace: () => void;
+  // Pour mettre à jour la liste après modifications
 }
 
 interface EditModalProps {
@@ -534,7 +536,7 @@ const PlacesTable: React.FC<PlacesTableProps> = ({ places, onPlacesChange }) => 
       {/* Message si aucun résultat */}
       {filteredPlaces.length === 0 && searchTerm && (
         <div className="text-center py-8">
-          <p className="text-gray-500 mb-2">Aucune place trouvée pour "{searchTerm}"</p>
+          <p className="text-gray-500 mb-2">Aucune place trouvée pour {searchTerm}</p>
           <button
             onClick={() => setSearchTerm('')}
             className="text-blue-600 hover:text-blue-800 text-sm font-medium"

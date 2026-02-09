@@ -14,6 +14,12 @@ interface SideNavItem {
   icon?: React.ElementType;
   subItems?: SideNavItem[];
 }
+interface User {
+  id: number;
+  nom: string;
+  email: string;
+  role: string;
+}
 
 interface SideNavProps {
   items: SideNavItem[];
@@ -83,7 +89,7 @@ export default function SideNav({
   const { logout } = useAuth();
 
   const [openItems, setOpenItems] = useState<string[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Charger utilisateur depuis localStorage

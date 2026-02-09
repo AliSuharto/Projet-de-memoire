@@ -98,9 +98,13 @@ const MarcheeDetailsPage: React.FC = () => {
       const data = await response.json();
       console.log("✅ Détails du marché reçus depuis l'API:", data);
       setMarchee(data);
-    } catch (err: any) {
-      setError(err.message || "Erreur inconnue");
-    } finally {
+    } catch (err: unknown) {
+  if (err instanceof Error) {
+    setError(err.message);
+  } else {
+    setError("Erreur inconnue");
+  }
+} finally {
       setLoading(false);
     }
   };

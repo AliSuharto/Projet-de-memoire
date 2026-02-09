@@ -6,6 +6,42 @@ import * as z from 'zod';
 import { Search, Store, MapPin, FileText, Check, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import API_BASE_URL from '@/services/APIbaseUrl';
 
+// Types
+interface Marchand {
+  id: number;
+  prenom: string;
+  nom: string;
+  numCIN: string;
+  numTel1: string;
+}
+
+interface Place {
+  id: number;
+  nom: string;
+  marcheeName: string;
+  zoneName?: string;
+  hallName?: string;
+}
+
+interface Categorie {
+  id: number;
+  nom?: string;
+  libelle?: string;
+  tarif?: number;
+  montant?: number;
+}
+
+interface DroitAnnuel {
+  id: number;
+  montant?: number;
+  libelle?: string;
+}
+
+interface ApiResponse {
+  success: boolean;
+  message?: string;
+}
+
 // Schéma de validation
 const schema = z.object({
   categorieId: z.number().min(1, 'Catégorie obligatoire'),
@@ -17,13 +53,13 @@ type FormData = z.infer<typeof schema>;
 
 export default function PlaceAssignmentImproved() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [marchands, setMarchands] = useState<any[]>([]);
-  const [places, setPlaces] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [droits, setDroits] = useState<any[]>([]);
+  const [marchands, setMarchands] = useState<Marchand[]>([]);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [categories, setCategories] = useState<Categorie[]>([]);
+  const [droits, setDroits] = useState<DroitAnnuel[]>([]);
   
-  const [selectedMarchand, setSelectedMarchand] = useState<any>(null);
-  const [selectedPlace, setSelectedPlace] = useState<any>(null);
+  const [selectedMarchand, setSelectedMarchand] = useState<Marchand | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   
   const [searchM, setSearchM] = useState('');
   const [searchP, setSearchP] = useState('');
@@ -40,7 +76,7 @@ export default function PlaceAssignmentImproved() {
       fetch(`${API_BASE_URL}/places/places-disponibles`).then(r => r.json()),
       fetch(`${API_BASE_URL}/public/categories`).then(r => r.json()),
       fetch(`${API_BASE_URL}/public/droits-annuels`).then(r => r.json()),
-    ]).then(([m, p, c, d]) => {
+    ]).then(([m, p, c, d]: [Marchand[], Place[], Categorie[], DroitAnnuel[]]) => {
       setMarchands(m);
       setPlaces(p);
       setCategories(c);
@@ -53,7 +89,7 @@ export default function PlaceAssignmentImproved() {
   );
 
   const filteredPlaces = places.filter(p =>
-    `${p.nom} ${p.marcheeName} ${p.zoneName} ${p.hallName}`.toLowerCase().includes(searchP.toLowerCase())
+    `${p.nom} ${p.marcheeName} ${p.zoneName ?? ''} ${p.hallName ?? ''}`.toLowerCase().includes(searchP.toLowerCase())
   );
 
   const onSubmit = async (data: FormData) => {
@@ -69,7 +105,8 @@ export default function PlaceAssignmentImproved() {
           marchandId: selectedMarchand.id,
           placeId: selectedPlace.id,
         }),
-      }).then(r => r.json());
+      }).then(r => r.json()) as ApiResponse;
+      
       if (!attr.success) throw new Error(attr.message || "Échec attribution");
 
       // 2. Création contrat
@@ -86,7 +123,8 @@ export default function PlaceAssignmentImproved() {
           frequencePaiement: data.frequencePaiement,
           dateOfStart: data.dateDebut,
         }),
-      }).then(r => r.json());
+      }).then(r => r.json()) as ApiResponse;
+      
       if (contrat.success) {
         setMessage({ type: 'success', text: 'Place attribuée et contrat créé avec succès !' });
         setTimeout(() => {
@@ -99,8 +137,9 @@ export default function PlaceAssignmentImproved() {
       } else {
         throw new Error(contrat.message || "Échec contrat");
       }
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Une erreur est survenue' });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setMessage({ type: 'error', text: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -193,7 +232,7 @@ export default function PlaceAssignmentImproved() {
             </div>
           )}
 
-          {step === 2 && (
+          {step === 2 && selectedMarchand && (
             <div>
               <div className="mb-6 p-4 bg-gray-100 rounded-lg">
                 <p className="font-medium text-gray-800">Marchand sélectionné : {selectedMarchand.prenom} {selectedMarchand.nom}</p>
@@ -236,7 +275,7 @@ export default function PlaceAssignmentImproved() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 3 && selectedMarchand && selectedPlace && (
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="mb-8 p-4 bg-gray-100 rounded-lg">
                 <p className="font-medium text-gray-800">
