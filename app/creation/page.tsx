@@ -27,7 +27,7 @@ class RegistrationService {
   
 
   async sendVerificationCode(email: string) {
-    const response = await fetch(`${API_BASE_URL}/ordonnateur/init`, {
+    const response = await fetch(`${API_BASE_URL}/public/ordonnateur/init`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -64,7 +64,7 @@ class RegistrationService {
   console.log("📤 Données envoyées au backend /finalize :", JSON.stringify(payload, null, 2));
 
   // Envoi au backend
-  const response = await fetch(`${API_BASE_URL}/ordonnateur/finalize`, {
+  const response = await fetch(`${API_BASE_URL}/public/ordonnateur/finalize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
