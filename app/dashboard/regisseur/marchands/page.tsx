@@ -147,7 +147,7 @@ export default function MarchandsTable() {
   }, [data]);
 
   const filteredAndSortedData = useMemo(() => {
-    let filtered = data.filter(marchand => {
+    const filtered = data.filter(marchand => {
       const matchStatut = !statutFilter || marchand.statut === statutFilter;
       const matchMarchee = !marcheeFilter || marchand.places.some(p => p.marcheeName === marcheeFilter);
       const matchHall = !hallFilter || marchand.places.some(p => p.salleName === hallFilter);
@@ -161,7 +161,8 @@ export default function MarchandsTable() {
 
     if (sortConfig.key) {
       filtered.sort((a, b) => {
-        let aValue: any, bValue: any;
+        let aValue: string | number = '';
+        let bValue: string | number = '';
 
         if (sortConfig.key === 'nom') {
           aValue = a.nom;
@@ -351,7 +352,7 @@ export default function MarchandsTable() {
               </svg>
               <div>
                 <h3 className="text-red-800 font-semibold">Erreur : {error}</h3>
-                <p className="text-red-700 text-sm mt-1">Assurez-vous que l'API est accessible</p>
+                <p className="text-red-700 text-sm mt-1">Assurez-vous que l&apos;API est accessible</p>
               </div>
             </div>
           </div>

@@ -314,7 +314,7 @@ export default function MarchandDetailsPage() {
                   <h3 className="text-sm font-bold text-slate-700">Catégorie</h3>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-500 mb-0.5">Type d'activité</p>
+                  <p className="text-xs font-medium text-slate-500 mb-0.5">Type d&apos;activité</p>
                   <p className="text-sm font-semibold text-slate-800">
                     {marchand.places && marchand.places[0]?.categorieName ? marchand.places[0].categorieName : 'Non spécifiée'}
                   </p>
@@ -402,12 +402,12 @@ export default function MarchandDetailsPage() {
               {showPaiements ? (
                 <>
                   <ChevronUp className="w-5 h-5" />
-                  Masquer l'historique
+                  Masquer l&apos;historique
                 </>
               ) : (
                 <>
                   <Receipt className="w-5 h-5" />
-                  Voir l'historique complet
+                  Voir l&apos;historique complet
                 </>
               )}
             </button>

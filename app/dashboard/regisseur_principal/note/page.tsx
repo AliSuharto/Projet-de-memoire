@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { Plus, Search, Calendar, Clock, X, Edit2, Trash2 } from 'lucide-react';
 import API_BASE_URL from '@/services/APIbaseUrl';
 
@@ -74,9 +74,10 @@ const NotesPage: React.FC = () => {
     try {
       await axiosInstance.delete(`/notes/${noteId}`);
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur suppression', err);
-      alert(err.response?.data?.message || 'Erreur lors de la suppression');
+      const axiosError = err as AxiosError<{ message: string }>;
+      alert(axiosError.response?.data?.message || 'Erreur lors de la suppression');
     }
   };
 
@@ -100,9 +101,10 @@ const NotesPage: React.FC = () => {
         setNotes((prev) => [res.data.data, ...prev]);
       }
       closeForm();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur sauvegarde', err);
-      alert(err.response?.data?.message || 'Erreur lors de la sauvegarde');
+      const axiosError = err as AxiosError<{ message: string }>;
+      alert(axiosError.response?.data?.message || 'Erreur lors de la sauvegarde');
     }
   };
 
@@ -149,9 +151,9 @@ const NotesPage: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-0 pt-20 md:pt-0 mt-0">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-gray-200 px-4 py-4 md:px-8 shadow-sm">
+      <header className="sticky top-0 z-10 bg-white/90 backdrop-blur-md rounded-b-lg border-b border-gray-200 px-4 py-4 md:px-8 shadow-sm">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-800">
             Mes Notes

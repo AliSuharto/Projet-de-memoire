@@ -40,7 +40,7 @@ export default function UnauthorizedPage() {
           
           {/* Message */}
           <p className="text-gray-600 mb-6">
-            Vous n'avez pas les permissions nécessaires pour accéder à cette page.
+            Vous n&apos;avez pas les permissions nécessaires pour accéder à cette page.
             {user && (
               <>
                 <br />
@@ -74,7 +74,7 @@ export default function UnauthorizedPage() {
           {/* Contact */}
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-sm text-gray-500">
-              Si vous pensez qu'il s'agit d'une erreur, contactez votre administrateur.
+              Si vous pensez q&apos;uil s&apos;agit d&apos;une erreur, contactez votre administrateur.
             </p>
           </div>
         </div>

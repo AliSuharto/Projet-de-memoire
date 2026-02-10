@@ -186,7 +186,7 @@ const MarketsManagement: React.FC = () => {
                     Places Occupées
                   </th>
                   <th className="px-4 sm:px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Taux d'Occupation
+                    Taux d&apos;Occupation
                   </th>
                   <th className="px-4 sm:px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     Actions

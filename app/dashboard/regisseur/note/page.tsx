@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { Plus, Search, Calendar, Clock, X, Edit2, Trash2 } from 'lucide-react';
 import API_BASE_URL from '@/services/APIbaseUrl';
 
@@ -74,9 +74,10 @@ const NotesPage: React.FC = () => {
     try {
       await axiosInstance.delete(`/notes/${noteId}`);
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur suppression', err);
-      alert(err.response?.data?.message || 'Erreur lors de la suppression');
+      const axiosError = err as AxiosError<{ message: string }>;
+      alert(axiosError.response?.data?.message || 'Erreur lors de la suppression');
     }
   };
 
@@ -100,9 +101,10 @@ const NotesPage: React.FC = () => {
         setNotes((prev) => [res.data.data, ...prev]);
       }
       closeForm();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur sauvegarde', err);
-      alert(err.response?.data?.message || 'Erreur lors de la sauvegarde');
+      const axiosError = err as AxiosError<{ message: string }>;
+      alert(axiosError.response?.data?.message || 'Erreur lors de la sauvegarde');
     }
   };
 

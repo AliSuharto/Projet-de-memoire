@@ -108,8 +108,9 @@ export default function SessionValidationPage() {
       document.body.appendChild(successMsg);
       setTimeout(() => successMsg.remove(), 3000);
       
-    } catch (error: any) {
-      alert(error.response?.data || "Erreur lors de la validation.");
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: string } };
+      alert(axiosError.response?.data || "Erreur lors de la validation.");
       console.error("Erreur validation :", error);
     } finally {
       setValidating(null);

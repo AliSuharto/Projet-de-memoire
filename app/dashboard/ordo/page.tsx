@@ -254,7 +254,7 @@ const OrdoDashboard: React.FC = () => {
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">Taux d'occupation des marchés</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Taux d&apos;occupation des marchés</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={occupationData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -281,7 +281,7 @@ const OrdoDashboard: React.FC = () => {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {pieData.map((entry, index) => (
+                    {pieData.map((_entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -330,7 +330,7 @@ const OrdoDashboard: React.FC = () => {
                       <p className="text-2xl font-bold text-purple-600">{marche.availablePlaces}</p>
                     </div>
                     <div className="bg-orange-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Taux d'occupation</p>
+                      <p className="text-sm text-gray-600">Taux d&apos;occupation</p>
                       <p className="text-2xl font-bold text-orange-600">{marche.occupationRate}%</p>
                     </div>
                   </div>

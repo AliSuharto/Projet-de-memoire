@@ -195,7 +195,7 @@ console.log('Sessions Chart Data:', sessionsChartData);
     }, [] as Array<{ nom: string; total: number; count: number }>)
     .sort((a, b) => b.total - a.total)
     .slice(0, 5);
-  const recentActivities = data.sessions
+  const recentActivities: Array<{ text: string; date: Date; type: 'paiement' | 'session' }> = data.sessions
     .flatMap(session => 
       session.paiements.map(p => ({
         text: `${p.motif} par ${p.nomMarchands} montant ${p.montant} Ar`,

@@ -29,6 +29,20 @@ interface Session {
   status: string;
 }
 
+interface ReceiptData {
+  merchantName: string;
+  cin: string;
+  place: string;
+  category: string;
+  motif: string;
+  amount: string;
+  amountText: string;
+  receiptNumber: string;
+  paymentDate: string;
+  agentName: string;
+  paymentType: PaymentType;
+}
+
 type PaymentType = 'droit_annuel' | 'droit_place';
 
 export default function PaiementMarchand() {
@@ -40,7 +54,7 @@ export default function PaiementMarchand() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showReceipt, setShowReceipt] = useState(false);
-  const [receiptData, setReceiptData] = useState<any>(null);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
   // Session
   const [session, setSession] = useState<Session | null>(null);
@@ -133,8 +147,12 @@ export default function PaiementMarchand() {
       setShowCreateSessionModal(false);
       setSessionName('');
       setSuccess('Session créée avec succès !');
-    } catch (err: any) {
-      setError(err.message || 'Impossible de créer la session');
+    } catch (err: Error | unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Impossible de créer la session');
+      }
     } finally {
       setCreatingSession(false);
     }
@@ -215,6 +233,7 @@ export default function PaiementMarchand() {
         receiptNumber: numeroQuittance,
         paymentDate: new Date().toISOString(),
         agentName: user.nom || 'Agent',
+        paymentType: paymentType,
       };
 
       setReceiptData(receiptInfo);
@@ -224,8 +243,12 @@ export default function PaiementMarchand() {
       setNumeroQuittance('');
       setMerchantData(null);
       setSearchTerm('');
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors du paiement');
+    } catch (err: Error | unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Erreur lors du paiement');
+      }
     } finally {
       setLoading(false);
     }
@@ -431,7 +454,7 @@ export default function PaiementMarchand() {
 
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg text-gray-900">Droit de place</h3>
-                      <p className="text-gray-600 mt-1">Occupation d'emplacement</p>
+                      <p className="text-gray-600 mt-1">Occupation d&apos;emplacement</p>
                       <p className="text-2xl font-bold text-indigo-700 mt-3">
                         {parseFloat(merchantData.montantPlace).toLocaleString('fr-FR')} Ar
                       </p>

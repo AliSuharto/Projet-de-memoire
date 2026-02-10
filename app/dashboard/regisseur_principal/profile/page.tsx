@@ -30,6 +30,24 @@ interface PasswordForm {
   confirmPassword: string;
 }
 
+interface ApiResponse {
+  data?: UserData;
+  user?: UserData;
+}
+
+type PasswordFieldKey = 'old' | 'new' | 'confirm';
+
+interface ShowPasswordState {
+  old: boolean;
+  new: boolean;
+  confirm: boolean;
+}
+
+interface RoleBadgeConfig {
+  color: string;
+  icon: JSX.Element;
+}
+
 // ──────────────────────────────────────────────── Composant principal
 const UserProfile = () => {
   const [user, setUser] = useState<UserData | null>(null);
@@ -45,7 +63,7 @@ const UserProfile = () => {
   const [passwordForm, setPasswordForm] = useState<PasswordForm>({
     oldPassword: '', newPassword: '', confirmPassword: ''
   });
-  const [showPw, setShowPw] = useState({ old: false, new: false, confirm: false });
+  const [showPw, setShowPw] = useState<ShowPasswordState>({ old: false, new: false, confirm: false });
 
   const token = localStorage.getItem('token') || '';
 
@@ -67,7 +85,7 @@ const UserProfile = () => {
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const raw = await res.json();
+      const raw: ApiResponse & UserData = await res.json();
       const data: UserData = raw.data || raw.user || raw;
 
       if (!data?.id || !data.email) {
@@ -76,8 +94,9 @@ const UserProfile = () => {
 
       setUser(data);
       setEditedUser(data);
-    } catch (err: any) {
-      console.error(err);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
+      console.error(errorMessage);
       setError("Impossible de charger le profil. Vérifiez votre connexion.");
     } finally {
       setLoading(false);
@@ -102,7 +121,7 @@ const UserProfile = () => {
 
       if (!res.ok) throw new Error("Échec mise à jour");
 
-      const updated = await res.json();
+      const updated: ApiResponse & UserData = await res.json();
       const freshData = updated.data || updated.user || updated;
 
       setUser(freshData);
@@ -111,7 +130,8 @@ const UserProfile = () => {
       setSuccess("Profil mis à jour avec succès");
       setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
-      setError("Erreur lors de la sauvegarde");
+      const errorMessage = err instanceof Error ? err.message : "Erreur de sauvegarde";
+      setError(errorMessage);
     }
   };
 
@@ -142,7 +162,7 @@ const UserProfile = () => {
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
+        const errData = await res.json().catch(() => ({ message: '' }));
         throw new Error(errData.message || "Échec changement mot de passe");
       }
 
@@ -150,8 +170,9 @@ const UserProfile = () => {
       setShowPasswordModal(false);
       setSuccess("Mot de passe modifié avec succès");
       setTimeout(() => setSuccess(''), 4000);
-    } catch (err: any) {
-      setError(err.message || "Erreur – ancien mot de passe incorrect ?");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erreur – ancien mot de passe incorrect ?";
+      setError(errorMessage);
     }
   };
 
@@ -161,8 +182,8 @@ const UserProfile = () => {
   };
 
   // Fonction pour obtenir une couleur basée sur le rôle
-  const getRoleBadge = (role: string) => {
-    const badges: { [key: string]: { color: string; icon: JSX.Element } } = {
+  const getRoleBadge = (role: string): RoleBadgeConfig => {
+    const badges: Record<string, RoleBadgeConfig> = {
       'DIRECTEUR': { color: 'bg-purple-500', icon: <Award size={14} /> },
       'REGISSEUR_PRINCIPAL': { color: 'bg-blue-500', icon: <Shield size={14} /> },
       'REGISSEUR': { color: 'bg-green-500', icon: <Briefcase size={14} /> },
@@ -390,11 +411,11 @@ const UserProfile = () => {
                     {/* Formulaire */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       {[
-                        { label: "Prénom", key: "prenom", icon: User, type: "text", required: true },
-                        { label: "Nom", key: "nom", icon: User, type: "text", required: true },
-                        { label: "Pseudo", key: "pseudo", icon: User, type: "text", required: true },
-                        { label: "Email", key: "email", icon: Mail, type: "email", required: true },
-                        { label: "Téléphone", key: "telephone", icon: Phone, type: "tel", required: false },
+                        { label: "Prénom", key: "prenom" as keyof UserData, icon: User, type: "text", required: true },
+                        { label: "Nom", key: "nom" as keyof UserData, icon: User, type: "text", required: true },
+                        { label: "Pseudo", key: "pseudo" as keyof UserData, icon: User, type: "text", required: true },
+                        { label: "Email", key: "email" as keyof UserData, icon: Mail, type: "email", required: true },
+                        { label: "Téléphone", key: "telephone" as keyof UserData, icon: Phone, type: "tel", required: false },
                       ].map(({ label, key, icon: Icon, type, required }) => (
                         <div key={key} className={key === 'telephone' ? 'md:col-span-2' : ''}>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -407,7 +428,7 @@ const UserProfile = () => {
                               </div>
                               <input
                                 type={type}
-                                value={(editedUser as any)[key] ?? ''}
+                                value={String(editedUser[key] ?? '')}
                                 onChange={e => setEditedUser(prev => ({ ...prev, [key]: e.target.value }))}
                                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                                 placeholder={`Entrez votre ${label.toLowerCase()}`}
@@ -417,7 +438,7 @@ const UserProfile = () => {
                             <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-50 rounded-lg border border-gray-200">
                               <Icon className="text-gray-400" size={18} />
                               <span className="text-gray-900 font-medium">
-                                {(user as any)[key] || <span className="text-gray-400 font-normal">Non renseigné</span>}
+                                {user[key] || <span className="text-gray-400 font-normal">Non renseigné</span>}
                               </span>
                             </div>
                           )}
@@ -539,11 +560,11 @@ const UserProfile = () => {
               </div>
 
               <div className="p-6 space-y-5">
-                {['old', 'new', 'confirm'].map(field => {
+                {(['old', 'new', 'confirm'] as const).map(field => {
                   const label = field === 'old' ? "Ancien mot de passe" :
                                 field === 'new' ? "Nouveau mot de passe" :
                                 "Confirmer le mot de passe";
-                  const key = field as 'old' | 'new' | 'confirm';
+                  const key: PasswordFieldKey = field;
 
                   return (
                     <div key={field}>
