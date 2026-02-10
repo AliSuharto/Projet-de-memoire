@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Mail, Lock, User, MapPin, Building2, CheckCircle2, AlertCircle, Phone, AtSign } from 'lucide-react';
+import API_BASE_URL from '@/services/APIbaseUrl';
 
 // Types
 interface CommuneData {
@@ -23,10 +24,10 @@ interface OrdonnateurData {
 
 // Service d'inscription
 class RegistrationService {
-  private baseURL = 'http://localhost:8080/api';
+  
 
   async sendVerificationCode(email: string) {
-    const response = await fetch(`${this.baseURL}/ordonnateur/init`, {
+    const response = await fetch(`${API_BASE_URL}/ordonnateur/init`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -63,7 +64,7 @@ class RegistrationService {
   console.log("📤 Données envoyées au backend /finalize :", JSON.stringify(payload, null, 2));
 
   // Envoi au backend
-  const response = await fetch(`${this.baseURL}/finalize`, {
+  const response = await fetch(`${API_BASE_URL}/ordonnateur/finalize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
