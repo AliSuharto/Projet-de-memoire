@@ -164,7 +164,7 @@ export default function CreateUserPage() {
         
         // Redirection optionnelle après 2 secondes
         setTimeout(() => {
-          router.push('/users'); // Adapter selon votre routing
+          router.push('/dashboard/ordo/equipe'); // Adapter selon votre routing
         }, 2000);
       } else {
         setErrorMessage(result.message || 'Une erreur est survenue lors de la création');
@@ -377,7 +377,7 @@ export default function CreateUserPage() {
             <p className="text-xs text-gray-500">
               Un mot de passe temporaire sera généré et envoyé par email à l'utilisateur.
               <br />
-              L'utilisateur devra changer son mot de passe lors de sa première connexion.
+              L&apos;utilisateur devra changer son mot de passe lors de sa première connexion.
             </p>
           </div>
         </div>

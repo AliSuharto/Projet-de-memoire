@@ -71,7 +71,7 @@ useEffect(() => {
 const fetchData = async () => {
 try {
 setLoading(true);
-const response = await fetch('http://localhost:8080/api/contrat/contrats-actifs');
+const response = await fetch(`${API_BASE_URL}/contrat/contrats-actifs`);
 if (!response.ok) {
 throw new Error('Erreur lors du chargement des données');
 }

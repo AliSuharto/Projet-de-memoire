@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, Search, Shield, User, UserCheck, UserX } from 'lucide-react';
+import API_BASE_URL from '@/services/APIbaseUrl';
 
 interface TeamMember {
   id: number;
@@ -15,8 +16,6 @@ interface TeamMember {
   createdByName: string;
   createdAt: string;
 }
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api';
 
 const TeamManagementPage = () => {
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -208,7 +207,7 @@ const TeamManagementPage = () => {
       <div className="max-w-7xl mx-auto">
         <div className="bg-white shadow-sm rounded-lg p-4 mb-4">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Gestion des Équipes</h1>
-          <p className="text-sm text-gray-600">Administration des membres de l'équipe du marché</p>
+          <p className="text-sm text-gray-600">Administration des membres de l&apos;équipe du marché</p>
         </div>
 
         <div className="bg-white shadow-sm rounded-lg p-4 mb-4">
@@ -422,7 +421,7 @@ const TeamManagementPage = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {actionType === 'disable' ? 'Désactiver' : 'Activer'} l'utilisateur
+                  {actionType === 'disable' ? 'Désactiver' : 'Activer'} l&apos;utilisateur
                 </h3>
                 <p className="text-sm text-gray-500">
                   {selectedMember.prenom} {selectedMember.nom}
