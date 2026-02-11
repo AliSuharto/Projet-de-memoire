@@ -40,38 +40,47 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn">
       <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 modal-overlay"
         onClick={onClose}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            onClose();
+          }
+        }}
+        aria-label="Fermer la modal"
       />
-      <div className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full animate-slideUp">
+      <div className="relative bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full animate-slideUp">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors"
+          aria-label="Fermer"
         >
           <X className="w-5 h-5" />
         </button>
         
-        <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-6 mx-auto">
-          <UserPlus className="w-8 h-8 text-blue-600" />
+        <div className="flex items-center justify-center w-14 h-14 bg-blue-100 rounded-full mb-4 mx-auto">
+          <UserPlus className="w-7 h-7 text-blue-600" />
         </div>
         
-        <h3 className="text-2xl font-bold text-gray-900 mb-3 text-center">
+        <h3 className="text-xl font-bold text-gray-900 mb-2 text-center">
           Confirmer la création
         </h3>
         
-        <div className="space-y-3 mb-8">
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-sm text-gray-500 mb-1">Nom complet</p>
+        <div className="space-y-2 mb-6">
+          <div className="bg-gray-50 rounded-lg p-2.5">
+            <p className="text-xs text-gray-500 mb-0.5">Nom complet</p>
             <p className="font-semibold text-gray-900">{userData.prenom} {userData.nom}</p>
           </div>
           
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-sm text-gray-500 mb-1">Email</p>
+          <div className="bg-gray-50 rounded-lg p-2.5">
+            <p className="text-xs text-gray-500 mb-0.5">Email</p>
             <p className="font-semibold text-gray-900">{userData.email}</p>
           </div>
           
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-sm text-gray-500 mb-1">Rôle</p>
+          <div className="bg-gray-50 rounded-lg p-2.5">
+            <p className="text-xs text-gray-500 mb-0.5">Rôle</p>
             <p className="font-semibold text-gray-900">{userData.role}</p>
           </div>
         </div>
@@ -79,13 +88,13 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all duration-200"
+            className="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all duration-200"
           >
             Annuler
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-medium hover:shadow-lg hover:scale-105 transition-all duration-200"
+            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-medium hover:shadow-lg hover:scale-105 transition-all duration-200"
           >
             Confirmer
           </button>
@@ -134,7 +143,7 @@ const CreateUserPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const response = await api.post<ApiResponse<any>>('/users', formData);
+      const response = await api.post<ApiResponse<unknown>>('/users', formData);
       
       if (response.data.success) {
         showSuccess(
@@ -154,8 +163,9 @@ const CreateUserPage: React.FC = () => {
         
         setIsModalOpen(false);
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Une erreur est survenue lors de la création de l\'utilisateur';
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      const errorMessage = err.response?.data?.message || 'Une erreur est survenue lors de la création de l\'utilisateur';
       showError(
         'Erreur de création',
         errorMessage
@@ -168,32 +178,32 @@ const CreateUserPage: React.FC = () => {
   const isFormValid = formData.nom && formData.email && formData.role && formData.prenom && formData.pseudo;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 py-6 px-4">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 py-4 px-4">
+      <div className="max-w-4xl mx-auto">
         {/* Header avec animation */}
-        <div className="text-center mb-6 animate-fadeIn">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1 flex items-center justify-center gap-2">
-            <UserPlus className="w-6 h-6 text-blue-600" />
+        <div className="text-center mb-4 animate-fadeIn">
+          <h1 className="text-xl font-bold text-gray-900 mb-1 flex items-center justify-center gap-2">
+            <UserPlus className="w-5 h-5 text-blue-600" />
             Nouveau Utilisateur
           </h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-xs text-gray-600">
             Créez un compte utilisateur en quelques étapes
           </p>
         </div>
 
         {/* Formulaire */}
-        <div className="bg-white rounded-3xl shadow-xl p-8 md:p-10 animate-slideUp">
-          <div className="space-y-8">
+        <div className="bg-white rounded-2xl shadow-sm p-6 animate-slideUp">
+          <div className="space-y-5">
             {/* Informations personnelles */}
             <div>
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <User className="w-5 h-5 text-blue-600" />
+              <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <User className="w-4 h-4 text-blue-600" />
                 Informations personnelles
               </h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="group">
-                  <label htmlFor="prenom" className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor="prenom" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Prénom <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -203,13 +213,13 @@ const CreateUserPage: React.FC = () => {
                     value={formData.prenom}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-none"
+                    className="w-full px-3 py-2.5 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 outline-none"
                     placeholder="Jean"
                   />
                 </div>
 
                 <div className="group">
-                  <label htmlFor="nom" className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor="nom" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Nom <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -219,13 +229,13 @@ const CreateUserPage: React.FC = () => {
                     value={formData.nom}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-none"
+                    className="w-full px-3 py-2.5 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 outline-none"
                     placeholder="Dupont"
                   />
                 </div>
 
                 <div className="group">
-                  <label htmlFor="pseudo" className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor="pseudo" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Pseudo <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -235,24 +245,24 @@ const CreateUserPage: React.FC = () => {
                     value={formData.pseudo}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-none"
+                    className="w-full px-3 py-2.5 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 outline-none"
                     placeholder="jdupont"
                   />
                 </div>
 
                 <div className="group">
-                  <label htmlFor="telephone" className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor="telephone" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Téléphone
                   </label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       type="tel"
                       id="telephone"
                       name="telephone"
                       value={formData.telephone}
                       onChange={handleInputChange}
-                      className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-none"
+                      className="w-full pl-10 pr-3 py-2.5 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 outline-none"
                       placeholder="+261 34 00 000 00"
                     />
                   </div>
@@ -261,19 +271,19 @@ const CreateUserPage: React.FC = () => {
             </div>
 
             {/* Informations de connexion */}
-            <div className="border-t-2 border-gray-100 pt-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Mail className="w-5 h-5 text-blue-600" />
+            <div className="border-t-2 border-gray-100 pt-4">
+              <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <Mail className="w-4 h-4 text-blue-600" />
                 Informations de connexion
               </h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="group">
-                  <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor="email" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Adresse email <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       type="email"
                       id="email"
@@ -281,25 +291,25 @@ const CreateUserPage: React.FC = () => {
                       value={formData.email}
                       onChange={handleInputChange}
                       required
-                      className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-none"
+                      className="w-full pl-10 pr-3 py-2.5 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 outline-none"
                       placeholder="exemple@email.com"
                     />
                   </div>
                 </div>
 
                 <div className="group">
-                  <label htmlFor="role" className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor="role" className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Rôle <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <select
                       id="role"
                       name="role"
                       value={formData.role}
                       onChange={handleInputChange}
                       required
-                      className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-none appearance-none cursor-pointer"
+                      className="w-full pl-10 pr-3 py-2.5 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 outline-none appearance-none cursor-pointer"
                     >
                       <option value="">Sélectionnez un rôle</option>
                       {roles.map(role => (
@@ -314,26 +324,26 @@ const CreateUserPage: React.FC = () => {
             </div>
 
             {/* Bouton de soumission */}
-            <div className="flex justify-end pt-6">
+            <div className="flex justify-end pt-3">
               <button
                 onClick={handleSubmit}
                 disabled={!isFormValid || isLoading}
-                className={`group relative px-8 py-4 rounded-xl font-semibold text-white transition-all duration-300 ${
+                className={`group relative px-6 py-3 rounded-xl font-semibold text-sm text-white transition-all duration-300 ${
                   isFormValid && !isLoading
                     ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:shadow-2xl hover:shadow-blue-500/50 hover:scale-105 active:scale-95'
                     : 'bg-gray-400 cursor-not-allowed'
                 }`}
               >
-                <span className="flex items-center gap-3">
+                <span className="flex items-center gap-2">
                   {isLoading ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Création en cours...
                     </>
                   ) : (
                     <>
-                      <UserPlus className="w-5 h-5" />
-                      Créer l'utilisateur
+                      <UserPlus className="w-4 h-4" />
+                      Créer l&apos;utilisateur
                     </>
                   )}
                 </span>

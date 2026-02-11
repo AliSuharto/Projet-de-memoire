@@ -8,7 +8,7 @@ export default function RapportPage() {
   const rapport = {
     titre: "Rapport Mensuel des Recettes",
     periode: "Janvier 2026",
-    dateGeneration: "10 Février 2026",
+    dateGeneration: "20 Février 2026",
     commune: "Commune Urbaine de Diego Suarez",
     
     statistiquesGlobales: {

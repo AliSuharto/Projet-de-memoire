@@ -59,7 +59,7 @@ export default function DirecteurLayout({ children }: { children: React.ReactNod
         </main>
         
         {/* Footer */}
-        <Footer />
+        {/* <Footer /> */}
       </div>
     </ProtectedRoute>
   );

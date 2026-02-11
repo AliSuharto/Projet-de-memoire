@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Search, Edit2, Eye, X, Save, Loader2, MapPin, Building2, Layers } from 'lucide-react';
+import API_BASE_URL from '@/services/APIbaseUrl';
 
 
 interface MarcheeR {
@@ -51,7 +52,6 @@ interface UpdateUserData {
   hallIds?: number[];
 }
 
-const API_BASE_URL = 'http://localhost:8080/api'; // Adaptez selon votre configuration
 
 const UserManagementPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -510,7 +510,7 @@ const UserManagementPage: React.FC = () => {
       {/* En-tête fixe */}
       <div className="p-6 border-b border-gray-200 flex-shrink-0">
         <div className="flex justify-between items-start">
-          <h2 className="text-2xl font-bold text-gray-900">Détails de l'utilisateur</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Détails de l&apos;utilisateur</h2>
           <button
             onClick={() => setIsViewModalOpen(false)}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -705,7 +705,7 @@ const UserManagementPage: React.FC = () => {
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
-              Modifier et affecter l'utilisateur
+              Modifier et affecter l&apos;utilisateur
             </h2>
             <p className="text-gray-600 text-sm mt-1">
               Modifiez les informations et gérez les affectations

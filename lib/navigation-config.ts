@@ -214,13 +214,8 @@ export const NAVIGATION_CONFIG = {
           label: "Liste des marchés",
           icon: BookOpen,
           description: "Voir tous les marchés"
-        },
-        { 
-          href: "/dashboard/ordo/marchee/stat",
-          label: "Statistiques",
-          icon: BarChart3,
-          description: "Voir les performances" 
         }
+        
       ]
     },
     {
@@ -233,11 +228,7 @@ export const NAVIGATION_CONFIG = {
       icon: UserCheck,
       label: "Équipe de gestion"
     },
-    {
-      href: "/dashboard/ordo/rapports",
-      icon: FileText,
-      label: "Rapports"
-    },
+    
     {
       href: "/dashboard/ordo/parametres",
       icon: Settings,
@@ -327,11 +318,6 @@ export const NAVIGATION_CONFIG = {
       ]
     },
     
-    {
-      href: "/dashboard/directeur/rapports",
-      icon: FileText,
-      label: "Rapports"
-    },
 
     {
       href: "/dashboard/directeur/tarif",
@@ -388,7 +374,7 @@ REGISSEUR_PRINCIPAL: [
     {
       href: "/dashboard/regisseur_principal/marches",
       icon: ShoppingCart,
-      label: "Liste des marchés"     
+      label: "État des Marchés"     
     },
 ]as UnifiedNavItem[],
 
