@@ -416,59 +416,6 @@ const HelpPageRegisseur: React.FC = () => {
       )
     },
     {
-      id: 'rapports',
-      title: '9. Rapports et Exports',
-      content: (
-        <div>
-          <h2 className="text-3xl font-light mb-6 flex items-center gap-2">
-            <FileText className="text-blue-600" /> Générer des Rapports
-          </h2>
-          <p className="text-gray-700 mb-6">
-            Créez des rapports de vos activités pour votre suivi personnel ou à transmettre à votre hiérarchie.
-          </p>
-
-          <div className="space-y-6">
-            <div className="bg-white border p-6 rounded-xl shadow-sm">
-              <h4 className="font-bold mb-4">Types de rapports disponibles :</h4>
-              <div className="space-y-3">
-                <div className="border-l-4 border-l-blue-500 pl-4 py-2 bg-blue-50">
-                  <h5 className="font-semibold text-blue-800">Rapport journalier</h5>
-                  <p className="text-sm text-gray-700 mt-1">Récapitulatif de tous les encaissements de la journée</p>
-                </div>
-                <div className="border-l-4 border-l-green-500 pl-4 py-2 bg-green-50">
-                  <h5 className="font-semibold text-green-800">Rapport par période</h5>
-                  <p className="text-sm text-gray-700 mt-1">Synthèse des collectes sur une semaine, un mois ou une période personnalisée</p>
-                </div>
-                <div className="border-l-4 border-l-purple-500 pl-4 py-2 bg-purple-50">
-                  <h5 className="font-semibold text-purple-800">Rapport par marchand</h5>
-                  <p className="text-sm text-gray-700 mt-1">Historique complet des paiements d&apos;un marchand spécifique</p>
-                </div>
-                <div className="border-l-4 border-l-amber-500 pl-4 py-2 bg-amber-50">
-                  <h5 className="font-semibold text-amber-800">État des quittances</h5>
-                  <p className="text-sm text-gray-700 mt-1">Liste de vos quittances utilisées et disponibles</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-blue-50 p-5 rounded-lg border border-blue-200">
-                <h5 className="font-bold mb-2 flex items-center gap-2">
-                  <FileText className="size-5 text-blue-600" /> Format PDF
-                </h5>
-                <p className="text-sm text-gray-700">Pour les rapports officiels et l&apos;archivage</p>
-              </div>
-              <div className="bg-green-50 p-5 rounded-lg border border-green-200">
-                <h5 className="font-bold mb-2 flex items-center gap-2">
-                  <FileText className="size-5 text-green-600" /> Format Excel
-                </h5>
-                <p className="text-sm text-gray-700">Pour l&apos;analyse et le traitement des données</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
       id: 'notes',
       title: '10. Notes Personnelles',
       content: (
