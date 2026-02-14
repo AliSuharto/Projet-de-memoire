@@ -823,7 +823,7 @@ export default function MarcheeDashboard() {
   if (!marchee) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-20 md:pt-0">
       {/* Header Responsive */}
       <div className="top-30 left-50 right-0 bg-white border-b-2 border-gray-300 shadow-sm z-10 rounded-b-lg">
        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">

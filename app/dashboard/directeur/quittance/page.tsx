@@ -192,10 +192,10 @@ export default function QuittancePlageForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 pt-20 md:pt-2">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Générateur de Plage de Quittances</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Attribution de quittance aux percepteurs</h1>
           <p className="text-gray-600 mt-2">Créez une série de numéros de quittances en masse</p>
         </div>
 

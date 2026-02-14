@@ -178,7 +178,7 @@ const CreateUserPage: React.FC = () => {
   const isFormValid = formData.nom && formData.email && formData.role && formData.prenom && formData.pseudo;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 py-4 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 py-4 px-4 pt-20 md:pt-0">
       <div className="max-w-4xl mx-auto">
         {/* Header avec animation */}
         <div className="text-center mb-4 animate-fadeIn">

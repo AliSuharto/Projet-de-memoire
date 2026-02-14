@@ -191,7 +191,7 @@ const OrdoDashboard = () => {
   const COLORS = ['#10b981', '#ef4444'];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 pt-20 md:pt-0">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">Tableau de Bord du Directeur</h1>
