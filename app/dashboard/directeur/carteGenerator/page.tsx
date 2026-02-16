@@ -1,27 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Download, Check, Shield, ChevronDown } from "lucide-react";
+import { X, Download, Check, Shield, ChevronDown, Printer } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 // =============================
 // SÉCURITÉ - SIGNATURE QR CODE
 // =============================
 
-// ⚠️ IMPORTANT: Cette clé doit être identique côté backend et mobile
-// En production, utilisez une variable d'environnement sécurisée
 const SECRET_KEY = process.env.NEXT_PUBLIC_QR_SECRET_KEY || "BAZARYKELY_2025_SECRET_KEY_CHANGE_ME";
 
-/**
- * Génère une signature HMAC-SHA256 pour authentifier le QR code
- * Utilise l'API Web Crypto disponible dans les navigateurs modernes
- */
 async function generateSignature(data: string): Promise<string> {
   const encoder = new TextEncoder();
   const keyData = encoder.encode(SECRET_KEY);
   const messageData = encoder.encode(data);
 
-  // Import de la clé
   const key = await crypto.subtle.importKey(
     "raw",
     keyData,
@@ -30,19 +23,14 @@ async function generateSignature(data: string): Promise<string> {
     ["sign"]
   );
 
-  // Signature
   const signature = await crypto.subtle.sign("HMAC", key, messageData);
 
-  // Conversion en hexadécimal
   return Array.from(new Uint8Array(signature))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("")
-    .substring(0, 16); // 16 premiers caractères pour réduire la taille du QR
+    .substring(0, 16);
 }
 
-/**
- * Génère les données sécurisées pour le QR code
- */
 async function generateSecureQRData(marchand: Marchand): Promise<string> {
   const merchantData = {
     id: marchand.id,
@@ -61,14 +49,47 @@ async function generateSecureQRData(marchand: Marchand): Promise<string> {
   const dataString = JSON.stringify(merchantData);
   const signature = await generateSignature(dataString);
 
-  // Structure finale avec versioning et timestamp
   return JSON.stringify({
-    v: "1.0", // Version du format
+    v: "1.0",
     data: merchantData,
     sig: signature,
-    ts: Date.now(), // Timestamp pour traçabilité
+    ts: Date.now(),
   });
 }
+
+// =============================
+// UTILITAIRES
+// =============================
+
+/**
+ * Formate l'adresse de la place selon les valeurs disponibles
+ * Format: place-hall-zone ou place-hall ou place-zone ou place
+ */
+const formatPlaceAddress = (place?: Place): string => {
+  if (!place?.nom) return "-";
+  
+  const placeName = place.nom;
+  const hallName = place.salleName;
+  const zoneName = place.zoneName;
+  
+  // Si les deux existent
+  if (hallName && zoneName) {
+    return `${placeName}-${hallName}-${zoneName}`;
+  }
+  // Si seulement hall existe
+  if (hallName) {
+    return `${placeName}-${hallName}`;
+  }
+  // Si seulement zone existe
+  if (zoneName) {
+    return `${placeName}-${zoneName}`;
+  }
+  // Seulement le nom de la place
+  return placeName;
+};
+
+const formatDate = (d?: string) =>
+  d ? new Date(d).toLocaleDateString("fr-FR") : "Non renseignée";
 
 // =============================
 // INTERFACES
@@ -102,12 +123,6 @@ interface MerchantCardGeneratorProps {
   onClose: () => void;
 }
 
-// =============================
-// UTILITAIRE
-// =============================
-const formatDate = (d?: string) =>
-  d ? new Date(d).toLocaleDateString("fr-FR") : "Non renseignée";
-
 // =====================================================================
 // ⚡ COMPOSANT HD — CARTE 3150 × 4440 px (VERSION IMPRESSION EXPORT)
 // =====================================================================
@@ -116,13 +131,13 @@ const MerchantCardHD: React.FC<{
   templateUrl: string;
   secureQRData: string;
 }> = ({ marchand, templateUrl, secureQRData }) => {
-  // Extraction de la signature pour affichage
   const qrPayload = JSON.parse(secureQRData);
   const signature = qrPayload.sig;
 
   return (
     <div
       id={`card-hd-${marchand.id}`}
+      className="merchant-card-print"
       style={{
         width: "3150px",
         height: "4440px",
@@ -161,7 +176,7 @@ const MerchantCardHD: React.FC<{
         {marchand.places?.[0]?.marcheeName || "-"}
       </div>
 
-      {/* PLACE */}
+      {/* PLACE (FORMAT AMÉLIORÉ) */}
       <div
         style={{
           position: "absolute",
@@ -172,7 +187,7 @@ const MerchantCardHD: React.FC<{
           color: "#000",
         }}
       >
-        {marchand.places?.[0]?.nom + "-" + marchand.places?.[0]?.salleName || "-"}
+        {formatPlaceAddress(marchand.places?.[0])}
       </div>
 
       {/* ACTIVITE */}
@@ -180,7 +195,7 @@ const MerchantCardHD: React.FC<{
         style={{
           position: "absolute",
           left: "1680px",
-          top: "2030px",
+          top: "2020px",
           fontSize: "120px",
           fontWeight: "bold",
           color: "#000",
@@ -208,9 +223,9 @@ const MerchantCardHD: React.FC<{
         style={{
           position: "absolute",
           left: "2410px",
-          top: "2500px",
+          top: "2530px",
           fontSize: "120px",
-          fontWeight: "semi-bold",
+          fontWeight: "bold",
           color: "#000",
         }}
       >
@@ -222,13 +237,13 @@ const MerchantCardHD: React.FC<{
         style={{
           position: "absolute",
           left: "280px",
-          top: "2955px",
-          fontSize: "160px",
+          top: "3010px",
+          fontSize: "120px",
           fontWeight: "bold",
           color: "#000",
         }}
       >
-        {marchand.stat || " "}
+        {marchand.stat || "-"}
       </div>
 
       {/* NIF */}
@@ -236,13 +251,13 @@ const MerchantCardHD: React.FC<{
         style={{
           position: "absolute",
           left: "280px",
-          top: "2655px",
-          fontSize: "160px",
-          fontWeight: "semi-bold",
+          top: "2690px",
+          fontSize: "120px",
+          fontWeight: "bold",
           color: "#000",
         }}
       >
-        {marchand.nif || " "}
+        {marchand.nif || "-"}
       </div>
 
       {/* TELEPHONE */}
@@ -250,9 +265,9 @@ const MerchantCardHD: React.FC<{
         style={{
           position: "absolute",
           left: "280px",
-          top: "3300px",
-          fontSize: "160px",
-          fontWeight: "semi-bold",
+          top: "3310px",
+          fontSize: "120px",
+          fontWeight: "bold",
           color: "#000",
         }}
       >
@@ -286,7 +301,6 @@ const MerchantCardHD: React.FC<{
             display: "block",
           }}
         />
-        {/* Numéro de sécurité visible */}
         <div
           style={{
             marginTop: "20px",
@@ -353,7 +367,7 @@ const MerchantCardPreview: React.FC<{
         style={{
           position: "absolute",
           left: `${815 * scale}px`,
-          top: `${980 * scale}px`,
+          top: `${990 * scale}px`,
           fontSize: `${120 * scale}px`,
           fontWeight: "bold",
           color: "#083e7dff",
@@ -370,7 +384,7 @@ const MerchantCardPreview: React.FC<{
         style={{
           position: "absolute",
           left: `${1680 * scale}px`,
-          top: `${1380 * scale}px`,
+          top: `${1450 * scale}px`,
           fontSize: `${120 * scale}px`,
           fontWeight: "bold",
           color: "#000",
@@ -380,19 +394,19 @@ const MerchantCardPreview: React.FC<{
         {marchand.places?.[0]?.marcheeName || "-"}
       </div>
 
-      {/* PLACE */}
+      {/* PLACE (FORMAT AMÉLIORÉ) */}
       <div
         style={{
           position: "absolute",
           left: `${1680 * scale}px`,
-          top: `${1680 * scale}px`,
+          top: `${1780 * scale}px`,
           fontSize: `${120 * scale}px`,
           fontWeight: "bold",
           color: "#000",
           lineHeight: 1,
         }}
       >
-        {marchand.places?.[0]?.nom + "-" + marchand.places?.[0]?.salleName || "-"}
+        {formatPlaceAddress(marchand.places?.[0])}
       </div>
 
       {/* ACTIVITE */}
@@ -400,7 +414,7 @@ const MerchantCardPreview: React.FC<{
         style={{
           position: "absolute",
           left: `${1680 * scale}px`,
-          top: `${2030 * scale}px`,
+          top: `${2085 * scale}px`,
           fontSize: `${120 * scale}px`,
           fontWeight: "bold",
           color: "#000",
@@ -415,7 +429,7 @@ const MerchantCardPreview: React.FC<{
         style={{
           position: "absolute",
           left: `${1680 * scale}px`,
-          top: `${2300 * scale}px`,
+          top: `${2390 * scale}px`,
           fontSize: `${120 * scale}px`,
           fontWeight: "bold",
           color: "#000",
@@ -429,8 +443,8 @@ const MerchantCardPreview: React.FC<{
       <div
         style={{
           position: "absolute",
-          left: `${2410 * scale}px`,
-          top: `${2500 * scale}px`,
+          left: `${2440 * scale}px`,
+          top: `${2615 * scale}px`,
           fontSize: `${120 * scale}px`,
           fontWeight: 600,
           color: "#000",
@@ -445,14 +459,14 @@ const MerchantCardPreview: React.FC<{
         style={{
           position: "absolute",
           left: `${280 * scale}px`,
-          top: `${2950 * scale}px`,
-          fontSize: `${160 * scale}px`,
+          top: `${3100 * scale}px`,
+          fontSize: `${120 * scale}px`,
           fontWeight: "bold",
           color: "#000",
           lineHeight: 1,
         }}
       >
-        {marchand.stat || " "}
+        {marchand.stat || "-"}
       </div>
 
       {/* NIF */}
@@ -460,14 +474,14 @@ const MerchantCardPreview: React.FC<{
         style={{
           position: "absolute",
           left: `${280 * scale}px`,
-          top: `${2650 * scale}px`,
-          fontSize: `${160 * scale}px`,
+          top: `${2800 * scale}px`,
+          fontSize: `${120 * scale}px`,
           fontWeight: 600,
           color: "#000",
           lineHeight: 1,
         }}
       >
-        {marchand.nif || " "}
+        {marchand.nif || "-"}
       </div>
 
       {/* TELEPHONE */}
@@ -475,8 +489,8 @@ const MerchantCardPreview: React.FC<{
         style={{
           position: "absolute",
           left: `${280 * scale}px`,
-          top: `${3300 * scale}px`,
-          fontSize: `${160 * scale}px`,
+          top: `${3400 * scale}px`,
+          fontSize: `${120 * scale}px`,
           fontWeight: 600,
           color: "#000",
           lineHeight: 1,
@@ -541,6 +555,7 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
   );
   const [template, setTemplate] = useState("/carte-bazarykely.png");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [qrDataMap, setQrDataMap] = useState<Record<number, string>>({});
   const [isGeneratingQR, setIsGeneratingQR] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -570,6 +585,7 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
       selectedIds.length === marchands.length ? [] : marchands.map((m) => m.id)
     );
 
+  // ✨ TÉLÉCHARGEMENT OPTIMISÉ (plus rapide)
   const downloadSelected = async () => {
     if (selected.length === 0) return;
 
@@ -578,6 +594,60 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
     try {
       const html2canvas = (await import("html2canvas")).default;
 
+      // Traiter par lots de 3 cartes en parallèle pour accélérer
+      const batchSize = 3;
+      for (let i = 0; i < selected.length; i += batchSize) {
+        const batch = selected.slice(i, i + batchSize);
+        
+        await Promise.all(
+          batch.map(async (marchand) => {
+            const el = document.getElementById(`card-hd-${marchand.id}`);
+            if (!el) return;
+
+            const canvas = await html2canvas(el, {
+              scale: 1,
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: null,
+              logging: false, // Désactiver les logs pour accélérer
+            });
+
+            const a = document.createElement("a");
+            a.download = `CARTE_SECURISEE_${marchand.nom}_${marchand.prenom}_${String(
+              marchand.id
+            ).padStart(4, "0")}.png`;
+            a.href = canvas.toDataURL("image/png", 0.95); // Compression légère
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          })
+        );
+
+        // Petit délai entre les lots
+        if (i + batchSize < selected.length) {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors du téléchargement:", error);
+      alert("Erreur lors du téléchargement des cartes.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // ✨ IMPRESSION DIRECTE (avec conversion en images pour inclure le template)
+  const printSelected = async () => {
+    if (selected.length === 0) return;
+
+    setIsPrinting(true);
+
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+
+      // Convertir chaque carte en image
+      const cardImages: string[] = [];
+      
       for (const marchand of selected) {
         const el = document.getElementById(`card-hd-${marchand.id}`);
         if (!el) continue;
@@ -587,23 +657,89 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
           useCORS: true,
           allowTaint: true,
           backgroundColor: null,
+          logging: false,
         });
 
-        const a = document.createElement("a");
-        a.download = `CARTE_SECURISEE_${marchand.nom}_${marchand.prenom}_${String(
-          marchand.id
-        ).padStart(4, "0")}.png`;
-        a.href = canvas.toDataURL("image/png");
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        cardImages.push(canvas.toDataURL("image/png"));
       }
+
+      // Créer une fenêtre d'impression avec les images
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        alert("Veuillez autoriser les pop-ups pour l'impression");
+        setIsPrinting(false);
+        return;
+      }
+
+      // CSS pour l'impression
+      const printStyles = `
+        <style>
+          @page {
+            size: 3150px 4440px;
+            margin: 0;
+          }
+          body {
+            margin: 0;
+            padding: 0;
+          }
+          .card-page {
+            page-break-after: always;
+            width: 3150px;
+            height: 4440px;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .card-page:last-child {
+            page-break-after: auto;
+          }
+          .card-page img {
+            width: 3150px;
+            height: 4440px;
+            display: block;
+          }
+        </style>
+      `;
+
+      // Générer le HTML avec les images
+      const cardsHTML = cardImages
+        .map((imgData, index) => `
+          <div class="card-page">
+            <img src="${imgData}" alt="Carte ${index + 1}" />
+          </div>
+        `)
+        .join("");
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Impression Cartes Marchands</title>
+            ${printStyles}
+          </head>
+          <body>
+            ${cardsHTML}
+          </body>
+        </html>
+      `);
+
+      printWindow.document.close();
+
+      // Attendre que les images soient chargées
+      setTimeout(() => {
+        printWindow.print();
+        setTimeout(() => {
+          printWindow.close();
+          setIsPrinting(false);
+        }, 500);
+      }, 1000);
+
     } catch (error) {
-      console.error("Erreur lors du téléchargement:", error);
-    } finally {
-      setIsDownloading(false);
+      console.error("Erreur lors de l'impression:", error);
+      alert("Erreur lors de l'impression des cartes.");
+      setIsPrinting(false);
     }
   };
 
@@ -664,7 +800,7 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
                   {currentMarchand.nom} {currentMarchand.prenom}
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
-                  ID Marchand: #{String(currentMarchand.id).padStart(4, "0")}
+                  {formatPlaceAddress(currentMarchand.places?.[0])}
                 </p>
                 <p className="text-xs text-green-600 mt-2 font-mono">
                   🔒 {JSON.parse(qrDataMap[currentMarchand.id]).sig.substring(0, 8).toUpperCase()}
@@ -812,7 +948,7 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
                           {m.nom} {m.prenom}
                         </p>
                         <p className="text-xs text-gray-500">
-                          #{String(m.id).padStart(4, "0")}
+                          {formatPlaceAddress(m.places?.[0])}
                         </p>
                       </div>
                       <Check
@@ -833,6 +969,7 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
 
             {/* Footer - Actions */}
             <div className="p-6 border-t space-y-3">
+              {/* Bouton Télécharger */}
               <button
                 onClick={downloadSelected}
                 disabled={isDownloading || selected.length === 0}
@@ -842,6 +979,18 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
                 {isDownloading
                   ? "Téléchargement en cours..."
                   : "Télécharger maintenant"}
+              </button>
+
+              {/* Bouton Imprimer */}
+              <button
+                onClick={printSelected}
+                disabled={isPrinting || selected.length === 0}
+                className="w-full py-4 bg-green-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-lg hover:shadow-xl"
+              >
+                <Printer size={20} />
+                {isPrinting
+                  ? "Préparation de l'impression..."
+                  : "Imprimer directement"}
               </button>
 
               <button
