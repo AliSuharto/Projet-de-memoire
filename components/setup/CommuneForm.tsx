@@ -1,9 +1,7 @@
 'use client';
 
 import { useForm } from 'react-hook-form';
-import { MapPin, Building2, ArrowRight, CheckCircle } from 'lucide-react';
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
+import { Building2, MapPin, Mail, Phone, ChevronRight } from 'lucide-react';
 import { Commune } from '@/services/communeService';
 
 interface CommuneFormProps {
@@ -23,7 +21,93 @@ interface FormData extends Commune {
   telephone?: string;
 }
 
-const CommuneForm = ({ onNext, onBack, initialData, isLoading }: CommuneFormProps) => {
+// ── Shared field style ────────────────────────────────────────────────────────
+const fieldWrap: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 4,
+};
+
+const label: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 600,
+  color: '#6B7280',
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+};
+
+const inputBase: React.CSSProperties = {
+  width: '100%',
+  padding: '9px 12px 9px 36px',
+  borderRadius: 10,
+  border: '1.5px solid #E5E7EB',
+  fontSize: 14,
+  color: '#111827',
+  background: '#F9FAFB',
+  outline: 'none',
+  transition: 'border-color 0.2s, box-shadow 0.2s',
+  boxSizing: 'border-box',
+};
+
+const iconWrap: React.CSSProperties = {
+  position: 'absolute',
+  left: 10,
+  top: '50%',
+  transform: 'translateY(-50%)',
+  pointerEvents: 'none',
+  color: '#9CA3AF',
+};
+
+const errorStyle: React.CSSProperties = {
+  fontSize: 11,
+  color: '#EF4444',
+  marginTop: 2,
+};
+
+// ── Reusable input with icon ──────────────────────────────────────────────────
+const Field = ({
+  label: lbl,
+  icon: Icon,
+  error,
+  required,
+  ...rest
+}: {
+  label: string;
+  icon: React.ElementType;
+  error?: string;
+  required?: boolean;
+  [key: string]: any;
+}) => (
+  <div style={fieldWrap}>
+    <span style={label}>
+      {lbl}{required && <span style={{ color: '#7C3AED' }}> *</span>}
+    </span>
+    <div style={{ position: 'relative' }}>
+      <div style={iconWrap}><Icon size={14} /></div>
+      <input
+        style={{
+          ...inputBase,
+          ...(error ? { borderColor: '#EF4444' } : {}),
+        }}
+        onFocus={e => {
+          e.target.style.borderColor = '#7C3AED';
+          e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.1)';
+          e.target.style.background = '#fff';
+        }}
+        onBlur={e => {
+          e.target.style.borderColor = error ? '#EF4444' : '#E5E7EB';
+          e.target.style.boxShadow = 'none';
+          e.target.style.background = '#F9FAFB';
+        }}
+        {...rest}
+      />
+    </div>
+    {error && <span style={errorStyle}>{error}</span>}
+  </div>
+);
+
+// ── Component ─────────────────────────────────────────────────────────────────
+const CommuneForm = ({ onNext, initialData, isLoading }: CommuneFormProps) => {
   const {
     register,
     handleSubmit,
@@ -35,249 +119,171 @@ const CommuneForm = ({ onNext, onBack, initialData, isLoading }: CommuneFormProp
       codePostal: initialData?.codePostal || '',
       region: initialData?.region || '',
       pays: initialData?.pays || 'Madagascar',
+      mail: initialData?.mail || '',
+      telephone: initialData?.telephone || '',
     },
     mode: 'onChange',
   });
 
-  const onSubmit = (data: FormData) => {
-    onNext(data);
-  };
-
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      {/* Guide d'utilisation */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
-        <div className="flex items-start space-x-4">
-          <div className="flex-shrink-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-              <Building2 className="h-5 w-5 text-blue-600" />
-            </div>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Configuration de votre commune
-            </h3>
-            <p className="text-gray-700 mb-4">
-              Pour continuer à utiliser la plateforme, veuillez renseigner ci-dessous les informations 
-              de votre commune. Ces données nous permettront de personnaliser votre expérience et de vous 
-              proposer des services adaptés à votre région.
-            </p>
-            <div className="flex items-center space-x-6 text-sm text-gray-600">
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <span>Informations sécurisées</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <span>Configuration rapide</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <span>Modifiable à tout moment</span>
-              </div>
-            </div>
-          </div>
+    <div>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 12,
+          background: 'linear-gradient(135deg,#EDE9FE,#DDD6FE)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <Building2 size={20} color="#7C3AED" />
+        </div>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1E1B4B' }}>
+            Informations de la Commune
+          </h2>
+          <p style={{ margin: 0, fontSize: 13, color: '#9CA3AF' }}>
+            Renseignez les informations officielles de votre commune
+          </p>
         </div>
       </div>
 
-      {/* En-tête du formulaire */}
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">
-          Informations de la commune
-        </h2>
-        <p className="text-lg text-gray-600">
-          Complétez les champs ci-dessous pour finaliser votre configuration
-        </p>
-      </div>
+      <form onSubmit={handleSubmit(onNext)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-      {/* Formulaire */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          {/* Informations principales - 2 colonnes */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <Building2 className="h-5 w-5 text-blue-600 mr-2" />
-              Informations principales
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                label="Nom de la commune"
-                placeholder="Ex: Commune de Diego"
-                leftIcon={Building2}
-                error={errors.nom?.message}
-                required
-                {...register('nom', {
-                  required: 'Le nom de la commune est requis',
-                  minLength: {
-                    value: 2,
-                    message: 'Le nom doit contenir au moins 2 caractères',
-                  },
-                })}
-              />
+        {/* Nom — full width */}
+        <Field
+          label="Nom de la commune"
+          icon={Building2}
+          placeholder="Entrez le nom de la commune"
+          required
+          error={errors.nom?.message}
+          {...register('nom', {
+            required: 'Le nom est requis',
+            minLength: { value: 2, message: 'Minimum 2 caractères' },
+          })}
+        />
 
-              <Input
-                label="Localisation"
-                placeholder="Ex: Antsiranana, Madagascar"
-                leftIcon={MapPin}
-                error={errors.localisation?.message}
-                required
-                {...register('localisation', {
-                  required: 'La localisation est requise',
-                  minLength: {
-                    value: 3,
-                    message: 'La localisation doit contenir au moins 3 caractères',
-                  },
-                })}
-              />
-            </div>
-          </div>
-
-          {/* Informations géographiques - 3 colonnes */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <MapPin className="h-5 w-5 text-green-600 mr-2" />
-              Informations géographiques
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Input
-                label="Code postal"
-                placeholder="Ex: 101"
-                type="text"
-                error={errors.codePostal?.message}
-                {...register('codePostal', {
-                  pattern: {
-                    value: /^[0-9]{2,5}$/,
-                    message: 'Le code postal doit contenir entre 2 et 5 chiffres',
-                  },
-                })}
-              />
-
-              <Input
-                label="Région"
-                placeholder="Ex: DIANA"
-                error={errors.region?.message}
-                {...register('region', {
-                  minLength: {
-                    value: 2,
-                    message: 'La région doit contenir au moins 2 caractères',
-                  },
-                })}
-              />
-
-              <Input
-                label="Pays"
-                placeholder="Ex: Madagascar"
-                error={errors.pays?.message}
-                {...register('pays', {
-                  required: 'Le pays est requis',
-                  minLength: {
-                    value: 2,
-                    message: 'Le pays doit contenir au moins 2 caractères',
-                  },
-                })}
-              />
-            </div>
-          </div>
-
-<div>
-  <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-    <CheckCircle className="h-5 w-5 text-purple-600 mr-2" />
-    Coordonnées
-  </h3>
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <Input
-      label="Adresse e-mail"
-      placeholder="Ex: commune@example.com"
-      type="email"
-      // error={errors.mail?.message}
-      {...register('mail', {
-        required: 'L’adresse e-mail est requise',
-        pattern: {
-          value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-          message: 'Veuillez entrer une adresse e-mail valide',
-        },
-      })}
-    />
-
-    <Input
-      label="Numéro de téléphone"
-      placeholder="Ex: 034 12 345 67"
-      type="tel"
-      error={errors.telephone?.message}
-      {...register('telephone', {
-        required: 'Le numéro de téléphone est requis',
-        pattern: {
-          value: /^[0-9]{9,10}$/,
-          message: 'Le numéro doit contenir entre 9 et 10 chiffres',
-        },
-      })}
-    />
-  </div>
-</div>
-
-
-
-
-
-
-
-
-
-          {/* Message d'aide */}
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-            <p className="text-sm text-gray-600 flex items-start">
-              <CheckCircle className="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
-              Les champs marqués d'un astérisque (*) sont obligatoires. Les autres informations 
-              nous aideront à mieux vous servir mais restent optionnelles.
-            </p>
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-between items-center pt-6 border-t border-gray-200">
-            {onBack ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={onBack}
-                disabled={isLoading}
-                className="px-6"
-              >
-                Retour
-              </Button>
-            ) : (
-              <div />
-            )}
-            
-            <Button
-              type="submit"
-              disabled={!isValid}
-              loading={isLoading}
-              className="px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-            >
-              {isLoading ? (
-                'Configuration en cours...'
-              ) : (
-                <span className="flex items-center">
-                  Continuer
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </span>
-              )}
-            </Button>
-          </div>
-        </form>
-      </div>
-
-      {/* Barre de progression (optionnelle) */}
-      <div className="flex justify-center">
-        <div className="flex items-center space-x-2 text-sm text-gray-500">
-          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-          <div className="w-8 h-0.5 bg-blue-500"></div>
-          <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-          <div className="w-8 h-0.5 bg-gray-300"></div>
-          <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-          <span className="ml-3">Étape 1 sur 3</span>
+        {/* Région + Email — 2 cols */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Field
+            label="Région"
+            icon={MapPin}
+            placeholder="Sélectionnez une région"
+            required
+            error={errors.region?.message}
+            {...register('region', {
+              required: 'La région est requise',
+              minLength: { value: 2, message: 'Minimum 2 caractères' },
+            })}
+          />
+          <Field
+            label="Email de la commune"
+            icon={Mail}
+            type="email"
+            placeholder="mairie@commune.mg"
+            required
+            error={errors.mail?.message}
+            {...register('mail', {
+              required: "L'email est requis",
+              pattern: {
+                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                message: 'Email invalide',
+              },
+            })}
+          />
         </div>
-      </div>
+
+        {/* Adresse complète — textarea styled as input */}
+        <div style={fieldWrap}>
+          <span style={label}>Adresse complète <span style={{ color: '#7C3AED' }}>*</span></span>
+          <div style={{ position: 'relative' }}>
+            <div style={{ ...iconWrap, top: 14, transform: 'none' }}>
+              <MapPin size={14} />
+            </div>
+            <textarea
+              rows={2}
+              placeholder="Entrez l'adresse complète de la commune"
+              style={{
+                ...inputBase,
+                resize: 'none',
+                lineHeight: '1.5',
+                borderColor: errors.localisation ? '#EF4444' : '#E5E7EB',
+              }}
+              onFocus={e => {
+                e.target.style.borderColor = '#7C3AED';
+                e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.1)';
+                e.target.style.background = '#fff';
+              }}
+              onBlur={e => {
+                e.target.style.borderColor = errors.localisation ? '#EF4444' : '#E5E7EB';
+                e.target.style.boxShadow = 'none';
+                e.target.style.background = '#F9FAFB';
+              }}
+              {...register('localisation', {
+                required: "L'adresse est requise",
+                minLength: { value: 3, message: 'Minimum 3 caractères' },
+              })}
+            />
+          </div>
+          {errors.localisation && <span style={errorStyle}>{errors.localisation.message}</span>}
+        </div>
+
+        {/* Code postal + Téléphone */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Field
+            label="Code postal"
+            icon={MapPin}
+            placeholder="101"
+            error={errors.codePostal?.message}
+            {...register('codePostal', {
+              pattern: { value: /^[0-9]{2,5}$/, message: '2 à 5 chiffres' },
+            })}
+          />
+          <Field
+            label="Téléphone"
+            icon={Phone}
+            type="tel"
+            placeholder="+261 XX XX XXX XX"
+            error={errors.telephone?.message}
+            {...register('telephone', {
+              pattern: { value: /^[0-9]{9,10}$/, message: '9 à 10 chiffres' },
+            })}
+          />
+        </div>
+
+        {/* Submit */}
+        <div style={{ marginTop: 4 }}>
+          <button
+            type="submit"
+            disabled={!isValid || isLoading}
+            style={{
+              width: '100%',
+              padding: '12px',
+              borderRadius: 12,
+              border: 'none',
+              background: (!isValid || isLoading)
+                ? '#E5E7EB'
+                : 'linear-gradient(135deg,#6D28D9,#7C3AED)',
+              color: (!isValid || isLoading) ? '#9CA3AF' : '#fff',
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: (!isValid || isLoading) ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              transition: 'opacity 0.2s, transform 0.1s',
+            }}
+            onMouseEnter={e => {
+              if (isValid && !isLoading) (e.currentTarget as HTMLButtonElement).style.opacity = '0.9';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+            }}
+          >
+            {isLoading ? 'Chargement...' : 'Continuer'}
+            {!isLoading && <ChevronRight size={18} />}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

@@ -149,7 +149,7 @@ const DashboardRecettes = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="flex items-center justify-center h-screen bg-gray-60">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Chargement des données...</p>
@@ -159,7 +159,7 @@ const DashboardRecettes = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 md:p-0 lg:p-6 pt-20 md:pt-0">
+    <div className="min-h-screen bg-gray-60 p-6 md:p-0 lg:p-6 pt-20 md:pt-0">
       <div className="max-w-7xl mx-auto">
         {/* En-tête */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">

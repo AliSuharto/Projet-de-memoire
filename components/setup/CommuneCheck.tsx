@@ -60,7 +60,7 @@ const CommuneCheck = ({ onCommuneExists, onNoCommuneFound, silent = false }: Com
       if (onNoCommuneFound) {
         onNoCommuneFound();
       } else {
-        router.push('/setup');
+        router.push('/creation');
       }
 
     } catch (error) {

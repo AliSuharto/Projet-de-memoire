@@ -7,6 +7,7 @@ import CommuneCheck from '@/components/setup/CommuneCheck';
 import SetupWizard from '@/components/setup/SetupWizard';
 import Image from 'next/image';
 import Link from 'next/link';
+import CommuneRegistration from './creation/page';
 
 export default function CustomLandingPage() {
   const { user, loading } = useAuth();
