@@ -67,7 +67,7 @@ export default function CustomLandingPage() {
     
     // CTA Button
     ctaText: "Commencer maintenant",
-    ctaLink: "/creation" // Remplacez par votre route
+    ctaLink: "/setup" // Remplacez par votre route
   };
 
   return (
