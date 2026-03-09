@@ -364,7 +364,7 @@ REGISSEUR_PRINCIPAL: [
     {
       href: "/dashboard/regisseur_principal/regisseurs",
       icon: CreditCard,
-      label: "Agents recouvreurs"
+      label: "Agents de recouvrement"
     },
     {
       href: "/dashboard/regisseur_principal/etats_de_versement",
