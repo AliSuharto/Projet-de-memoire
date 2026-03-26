@@ -463,7 +463,7 @@ export default function MarchandsTable() {
                             <span className="text-xs">montant payé</span>
                           </div>
                           <div className="text-sm font-semibold text-green-600">
-                            {getTotalPaiements(marchand).toLocaleString()} CFA
+                            {getTotalPaiements(marchand).toLocaleString()} Ar
                           </div>
                         </div>
                       </div>
