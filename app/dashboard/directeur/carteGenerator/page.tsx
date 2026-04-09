@@ -21,8 +21,18 @@ async function generateSignature(nom: string, cin: string, telephone: string): P
   return hex.substring(0, 4) + hex.substring(hex.length - 4);
 }
 
+
+
 async function generateSecureQRData(marchand: Marchand): Promise<string> {
-  const nom       = `${marchand.nom.toUpperCase()} ${marchand.prenom}`;
+  const nom = marchand.nom
+    .trim()
+    .split(/\s+/)
+    .map((mot, i) =>
+        i === 0
+            ? mot.toUpperCase()
+            : mot.charAt(0).toUpperCase() + mot.slice(1).toLowerCase()
+    )
+    .join(" ");
   const cin       = marchand.numCIN;
   const telephone = marchand.numTel1 || "-";
 
