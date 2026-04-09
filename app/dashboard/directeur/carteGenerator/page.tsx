@@ -28,28 +28,14 @@ async function generateSecureQRData(marchand: Marchand): Promise<string> {
 
   const sig = await generateSignature(nom, cin, telephone);
 
-  // Format : "Nom//CIN//Tel**SIG##metaJSON"
-  const mainPart = `${nom}//${cin}//${telephone}**${sig}`;
-
-  const meta = {
-    activite  : marchand.activite                        || "-",
-    place     : marchand.places?.[0]?.nom                || "Non assignée",
-    marche    : marchand.places?.[0]?.marcheeName        || "-",
-    zone      : marchand.places?.[0]?.zoneName           || "-",
-    hall      : marchand.places?.[0]?.salleName          || "-",
-    categorie : marchand.places?.[0]?.categorieName      || "-",
-    date      : formatDate(marchand.dateEnregistrement),
-  };
-
-  return `${mainPart}##${JSON.stringify(meta)}`;
+  // ✅ Format final : "NOM PRENOM//CIN//Tel**SIG"
+  return `${nom}//${cin}//${telephone}**${sig}`;
 }
 
-// ✅ Extrait la signature depuis la string plate "Nom//CIN//Tel**SIG##..."
+// ✅ Extraction de la signature — format simple sans ##meta
 function extractSignature(secureQRData: string): string {
   if (!secureQRData) return "--------";
-  // Prendre la partie avant "##", puis après "**"
-  const mainPart = secureQRData.split("##")[0];
-  const parts    = mainPart.split("**");
+  const parts = secureQRData.split("**");
   return parts[1] || "--------";
 }
 
@@ -111,7 +97,6 @@ const MerchantCardHD: React.FC<{
   templateUrl: string;
   secureQRData: string;
 }> = ({ marchand, templateUrl, secureQRData }) => {
-  // ✅ Extraction directe depuis la string — plus de JSON.parse
   const signature = extractSignature(secureQRData);
 
   return (
@@ -196,7 +181,6 @@ const MerchantCardPreview: React.FC<{
   secureQRData: string;
 }> = ({ marchand, templateUrl, secureQRData }) => {
   const scale = 0.11;
-  // ✅ Extraction directe depuis la string — plus de JSON.parse
   const signature = extractSignature(secureQRData);
 
   return (
@@ -284,14 +268,14 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
   marchands,
   onClose,
 }) => {
-  const [selectedIds, setSelectedIds]     = useState<number[]>(marchands.map((m) => m.id));
-  const [template]                        = useState("/carte-bazarykely.png");
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [isPrinting, setIsPrinting]       = useState(false);
-  const [qrDataMap, setQrDataMap]         = useState<Record<number, string>>({});
+  const [selectedIds, setSelectedIds]       = useState<number[]>(marchands.map((m) => m.id));
+  const [template]                          = useState("/carte-bazarykely.png");
+  const [isDownloading, setIsDownloading]   = useState(false);
+  const [isPrinting, setIsPrinting]         = useState(false);
+  const [qrDataMap, setQrDataMap]           = useState<Record<number, string>>({});
   const [isGeneratingQR, setIsGeneratingQR] = useState(true);
-  const [currentIndex, setCurrentIndex]   = useState(0);
-  const [resolution, setResolution]       = useState<"high" | "standard">("high");
+  const [currentIndex, setCurrentIndex]     = useState(0);
+  const [resolution, setResolution]         = useState<"high" | "standard">("high");
 
   const selected        = marchands.filter((m) => selectedIds.includes(m.id));
   const currentMarchand = marchands[currentIndex];
@@ -396,9 +380,8 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
     );
   }
 
-  // ✅ Signature extraite proprement sans JSON.parse
-  const currentQRData   = qrDataMap[currentMarchand.id] || "";
-  const currentSig      = extractSignature(currentQRData);
+  const currentQRData = qrDataMap[currentMarchand.id] || "";
+  const currentSig    = extractSignature(currentQRData);
 
   return (
     <>
@@ -428,7 +411,6 @@ const MerchantCardGenerator: React.FC<MerchantCardGeneratorProps> = ({
                 <p className="text-sm text-gray-600 mt-1">
                   {formatPlaceAddress(currentMarchand.places?.[0])}
                 </p>
-                {/* ✅ Plus de JSON.parse ici */}
                 <p className="text-xs text-green-600 mt-2 font-mono">
                   🔒 {currentSig.toUpperCase()}
                 </p>
