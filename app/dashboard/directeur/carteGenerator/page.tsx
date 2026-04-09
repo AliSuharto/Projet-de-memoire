@@ -8,53 +8,66 @@ import { QRCodeSVG } from "qrcode.react";
 // SÉCURITÉ - SIGNATURE QR CODE
 // =============================
 
-const SECRET_KEY = process.env.NEXT_PUBLIC_QR_SECRET_KEY || "BAZARYKELY_2025_SECRET_KEY_CHANGE_ME";
-
-async function generateSignature(data: string): Promise<string> {
+const PREFIX = "CUDS112233";
+ 
+/**
+ * Génère une signature SHA-256 identique au code WinDev :
+ *  Input  : "CUDS112233" + Nom_et_prénoms + "//" + N_CIN + "//" + Téléphone
+ *  Hash   : SHA-256 → hex uppercase
+ *  Sig    : Gauche(hex, 4) + Droite(hex, 4)  →  8 caractères
+ */
+async function generateSignature(nom: string, cin: string, telephone: string): Promise<string> {
+  const input = `${PREFIX}${nom}//${cin}//${telephone}`;
+ 
   const encoder = new TextEncoder();
-  const keyData = encoder.encode(SECRET_KEY);
-  const messageData = encoder.encode(data);
-
-  const key = await crypto.subtle.importKey(
-    "raw",
-    keyData,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const signature = await crypto.subtle.sign("HMAC", key, messageData);
-
-  return Array.from(new Uint8Array(signature))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
-    .substring(0, 16);
+  const data = encoder.encode(input); // UTF-8, identique à ChaîneVersUTF8()
+ 
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+ 
+  // Conversion en hex uppercase, identique à la boucle WinDev NumériqueVersChaîne(Asc(...), "02X")
+  const hex = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
+    .join("");
+ 
+  // Gauche(hex, 4) + Droite(hex, 4)
+  return hex.substring(0, 4) + hex.substring(hex.length - 4);
 }
-
+ 
+/**
+ * Génère la chaîne QR au format WinDev :
+ *   "Nom_et_prénoms//N_CIN//Téléphone**SSSSSSSS"
+ *
+ * Les infos supplémentaires (activité, place, marché…) sont encodées
+ * dans un bloc JSON séparé après le "##" pour rester lisibles côté scanner
+ * sans casser la vérification de signature.
+ *
+ * Format final :
+ *   "Nom//CIN//Tel**SIG##{"activite":"...","place":"...",...}"
+ */
 async function generateSecureQRData(marchand: Marchand): Promise<string> {
-  const merchantData = {
-    id: marchand.id,
-    nom: `${marchand.nom.toUpperCase()} ${marchand.prenom}`,
-    cin: marchand.numCIN,
-    tel: marchand.numTel1 || "-",
-    activite: marchand.activite || "-",
-    place: marchand.places?.[0]?.nom || "Non assignée",
-    marche: marchand.places?.[0]?.marcheeName || "-",
-    zone: marchand.places?.[0]?.zoneName || "-",
-    hall: marchand.places?.[0]?.salleName || "-",
-    categorie: marchand.places?.[0]?.categorieName || "-",
-    date: formatDate(marchand.dateEnregistrement),
+  // ── Champs utilisés pour la signature (identiques à WinDev) ──
+  const nom       = `${marchand.nom.toUpperCase()} ${marchand.prenom}`;
+  const cin       = marchand.numCIN;
+  const telephone = marchand.numTel1 || "-";
+ 
+  // ── Signature ──
+  const sig = await generateSignature(nom, cin, telephone);
+ 
+  // ── Partie principale (vérifiable) ──
+  const mainPart = `${nom}//${cin}//${telephone}**${sig}`;
+ 
+  // ── Métadonnées supplémentaires (non signées, informatives) ──
+  const meta = {
+    activite  : marchand.activite                          || "-",
+    place     : marchand.places?.[0]?.nom                  || "Non assignée",
+    marche    : marchand.places?.[0]?.marcheeName          || "-",
+    zone      : marchand.places?.[0]?.zoneName             || "-",
+    hall      : marchand.places?.[0]?.salleName            || "-",
+    categorie : marchand.places?.[0]?.categorieName        || "-",
+    date      : formatDate(marchand.dateEnregistrement),
   };
-
-  const dataString = JSON.stringify(merchantData);
-  const signature = await generateSignature(dataString);
-
-  return JSON.stringify({
-    v: "1.0",
-    data: merchantData,
-    sig: signature,
-    ts: Date.now(),
-  });
+ 
+  return `${mainPart}##${JSON.stringify(meta)}`;
 }
 
 // =============================
